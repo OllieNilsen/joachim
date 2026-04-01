@@ -149,8 +149,9 @@ impl Supertagger {
             ]
         });
 
-        let body_bytes = serde_json::to_vec(&body)
-            .map_err(|e| SupertaggerError::BedrockError(format!("failed to serialize request: {e}")))?;
+        let body_bytes = serde_json::to_vec(&body).map_err(|e| {
+            SupertaggerError::BedrockError(format!("failed to serialize request: {e}"))
+        })?;
 
         let invoke_future = self
             .client
@@ -166,16 +167,18 @@ impl Supertagger {
             .map_err(|e| SupertaggerError::BedrockError(e.to_string()))?;
 
         let response_bytes = result.body().as_ref();
-        let response_json: serde_json::Value = serde_json::from_slice(response_bytes)
-            .map_err(|e| SupertaggerError::BedrockError(format!("failed to parse Bedrock response envelope: {e}")))?;
+        let response_json: serde_json::Value =
+            serde_json::from_slice(response_bytes).map_err(|e| {
+                SupertaggerError::BedrockError(format!(
+                    "failed to parse Bedrock response envelope: {e}"
+                ))
+            })?;
 
         // Extract the text content from Anthropic's response format.
         let text = response_json["content"][0]["text"]
             .as_str()
             .ok_or_else(|| {
-                SupertaggerError::BedrockError(
-                    "Bedrock response missing content[0].text".into(),
-                )
+                SupertaggerError::BedrockError("Bedrock response missing content[0].text".into())
             })?;
 
         Ok(text.to_owned())

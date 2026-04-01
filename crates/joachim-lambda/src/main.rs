@@ -116,11 +116,7 @@ async fn handler(event: Request, tagger: &Supertagger) -> Result<Response<Body>,
         .body(Body::Text(serde_json::to_string(&resp)?))?)
 }
 
-fn json_error(
-    status: u16,
-    error: &'static str,
-    message: &str,
-) -> Result<Response<Body>, Error> {
+fn json_error(status: u16, error: &'static str, message: &str) -> Result<Response<Body>, Error> {
     let body = serde_json::to_string(&ErrorResponse {
         error,
         message: message.to_owned(),
