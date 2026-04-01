@@ -32,19 +32,9 @@ pub struct ParseInput(pub Vec<TypeAssignment>);
 /// 1. `chunk_idx` values must be monotonically non-decreasing.
 /// 2. No `TypeExpr` may be empty.
 fn validate(input: &ParseInput) -> bool {
-    let mut prev_chunk: Option<u16> = None;
-    for ta in &input.0 {
-        if ta.type_expr.is_empty() {
-            return false;
-        }
-        if let Some(prev) = prev_chunk {
-            if ta.chunk_idx < prev {
-                return false;
-            }
-        }
-        prev_chunk = Some(ta.chunk_idx);
-    }
-    true
+    let no_empty = input.0.iter().all(|ta| !ta.type_expr.is_empty());
+    let monotonic = input.0.windows(2).all(|w| w[0].chunk_idx <= w[1].chunk_idx);
+    no_empty && monotonic
 }
 
 // ---------------------------------------------------------------------------
@@ -54,15 +44,16 @@ fn validate(input: &ParseInput) -> bool {
 /// Flatten type assignments into a flat SimpleType sequence with parallel
 /// chunk index vector.
 fn flatten(input: &ParseInput) -> (Vec<SimpleType>, Vec<u16>) {
-    let mut types = Vec::new();
-    let mut chunks = Vec::new();
-    for ta in &input.0 {
-        for &st in ta.type_expr.as_slice() {
-            types.push(st);
-            chunks.push(ta.chunk_idx);
-        }
-    }
-    (types, chunks)
+    input
+        .0
+        .iter()
+        .flat_map(|ta| {
+            ta.type_expr
+                .as_slice()
+                .iter()
+                .map(move |&st| (st, ta.chunk_idx))
+        })
+        .unzip()
 }
 
 // ---------------------------------------------------------------------------
@@ -80,13 +71,14 @@ fn find_segments(types: &[SimpleType]) -> Vec<(usize, usize)> {
     let mut seg_start: Option<usize> = None;
 
     for (i, st) in types.iter().enumerate() {
-        if st.base == TypeId::Conj {
-            // Close current segment if open.
-            if let Some(start) = seg_start.take() {
+        match (st.base == TypeId::Conj, seg_start) {
+            (true, Some(start)) => {
                 segments.push((start, i));
+                seg_start = None;
             }
-        } else if seg_start.is_none() {
-            seg_start = Some(i);
+            (true, None) => {} // consecutive conj, no segment to close
+            (false, None) => seg_start = Some(i), // start new segment
+            (false, Some(_)) => {} // continue current segment
         }
     }
     // Close final segment.
@@ -202,26 +194,18 @@ fn is_injection_relevant(left: u16, right: u16, types: &[SimpleType], chunk_ids:
     let rt = types[right as usize];
 
     // One side must be Ag.
-    let (ag_pos, other_pos) = if lt.base == TypeId::Ag {
-        (left, right)
-    } else if rt.base == TypeId::Ag {
-        (right, left)
-    } else {
-        return false;
+    let other_pos = match (lt.base == TypeId::Ag, rt.base == TypeId::Ag) {
+        (true, _) => right,
+        (_, true) => left,
+        _ => return false,
     };
-    let _ = ag_pos; // used for clarity, value not needed further
 
     // The other side must share a chunk with a Dir or Role.
     let other_chunk = chunk_ids[other_pos as usize];
-    for (i, &cid) in chunk_ids.iter().enumerate() {
-        if cid == other_chunk {
-            let base = types[i].base;
-            if base == TypeId::Dir || base == TypeId::Role {
-                return true;
-            }
-        }
-    }
-    false
+    chunk_ids
+        .iter()
+        .enumerate()
+        .any(|(i, &cid)| cid == other_chunk && matches!(types[i].base, TypeId::Dir | TypeId::Role))
 }
 
 // ---------------------------------------------------------------------------

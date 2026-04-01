@@ -116,12 +116,10 @@ pub fn compute_voided_chunks(graph: &LinkageGraph, assignments: &[TypeAssignment
             let left_chunk = graph.meta[e.left as usize].chunk_idx;
             let right_chunk = graph.meta[e.right as usize].chunk_idx;
 
-            let target = if left_chunk == chunk && right_chunk != chunk {
-                right_chunk
-            } else if right_chunk == chunk && left_chunk != chunk {
-                left_chunk
-            } else {
-                continue;
+            let target = match (left_chunk == chunk, right_chunk == chunk) {
+                (true, false) => right_chunk,
+                (false, true) => left_chunk,
+                _ => continue, // both same chunk or neither
             };
 
             if voided.insert(target) {
