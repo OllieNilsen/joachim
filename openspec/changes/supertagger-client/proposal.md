@@ -5,9 +5,9 @@ The pregroup core engine (`joachim-core`) is complete but requires manually cons
 ## What Changes
 
 - Add `joachim-supertag` crate implementing the LLM supertagger client
-- Design a structured prompt that instructs Claude to chunk text and assign pregroup types
-- Parse Claude's structured JSON output into `Vec<TypeAssignment>` (from `joachim-core`)
-- Integrate with AWS Bedrock (Claude) for the LLM backend
+- Design a structured prompt with defensive delimiters to resist meta-prompt-injection
+- Parse Claude's structured JSON output into `Vec<TypeAssignment>` (from `joachim-core`) via intermediate types
+- Integrate with AWS Bedrock (Claude) via a reusable `Supertagger` struct
 - Handle supertagger failures gracefully (timeout, malformed output, rate limiting)
 - Include the prompt template as a versioned asset for iteration
 
@@ -15,8 +15,8 @@ The pregroup core engine (`joachim-core`) is complete but requires manually cons
 
 ### New Capabilities
 
-- `supertagger-prompt`: The prompt template and output schema that instructs the LLM to chunk text and assign pregroup types. Covers the type inventory, functional modifier patterns, voiding annotations, and few-shot examples from the ground truth corpus.
-- `supertagger-client`: The Rust client that sends text to AWS Bedrock (Claude), parses the structured JSON response into `Vec<TypeAssignment>`, validates the output, and handles errors. Includes retry logic and timeout handling.
+- `supertagger-prompt`: The prompt template and output schema that instructs the LLM to chunk text and assign pregroup types. Covers the type inventory, functional modifier patterns, voiding annotations, few-shot examples from the ground truth corpus, and defensive delimiter tags (`<input>...</input>`) to resist meta-prompt-injection.
+- `supertagger-client`: The Rust client struct (`Supertagger`) that holds a reusable Bedrock connection, sends text, extracts JSON from LLM responses (handling markdown fences and preamble), parses via intermediate types, validates output, and handles errors. Includes timeout handling.
 
 ### Modified Capabilities
 
@@ -26,7 +26,7 @@ The pregroup core engine (`joachim-core`) is complete but requires manually cons
 
 - **New crate**: `crates/joachim-supertag/` added to workspace
 - **Cargo.toml**: Updated workspace members
-- **Dependencies**: `aws-sdk-bedrockruntime`, `serde_json`, `tokio` (async runtime), `thiserror` (error types)
+- **Dependencies**: `aws-sdk-bedrockruntime`, `aws-config`, `serde_json`, `tokio` (async runtime), `thiserror` (error types)
 - **Feature flags**: `joachim-core/serde` must be enabled for JSON deserialization of type assignments
 - **Secrets**: Requires AWS credentials (IAM role or env vars) — no API keys committed
-- **Test strategy**: Unit tests with canned JSON responses (no live LLM calls in CI); integration test suite against live Bedrock behind a feature flag
+- **Test strategy**: Unit tests with canned JSON responses (no live LLM calls in CI); live integration test suite against Bedrock behind a `live-test` feature flag; adversarial meta-prompt-injection test cases

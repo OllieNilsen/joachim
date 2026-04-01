@@ -1,39 +1,81 @@
 ## ADDED Requirements
 
-### Requirement: Supertag function signature
-The supertagger SHALL expose an async function:
+### Requirement: Supertagger struct with reusable client
+The supertagger SHALL be a struct holding a pre-built Bedrock client and configuration:
 ```rust
-pub async fn supertag(text: &str, config: &SupertaggerConfig) -> Result<SupertaggerOutput, SupertaggerError>
+pub struct Supertagger {
+    client: BedrockRuntimeClient,
+    config: SupertaggerConfig,
+}
+```
+
+Construction is async (credential resolution may be async). The struct is reusable across multiple calls.
+
+#### Scenario: Construct once, call many
+- **WHEN** creating a `Supertagger` and calling `supertag()` twice
+- **THEN** both calls SHALL reuse the same Bedrock client (no reconstruction)
+
+### Requirement: Supertag method signature
+The supertagger SHALL expose an async method:
+```rust
+impl Supertagger {
+    pub async fn new(config: SupertaggerConfig) -> Result<Self, SupertaggerError>;
+    pub async fn supertag(&self, text: &str) -> Result<SupertaggerOutput, SupertaggerError>;
+}
 ```
 
 Where `SupertaggerOutput` contains `assignments: Vec<TypeAssignment>` and `prompt_version: &'static str`.
 
 #### Scenario: Successful supertagging
 - **WHEN** given valid input text and working Bedrock credentials
-- **THEN** the function SHALL return `Ok(SupertaggerOutput)` with valid `Vec<TypeAssignment>`
+- **THEN** the method SHALL return `Ok(SupertaggerOutput)` with valid `Vec<TypeAssignment>`
 
 #### Scenario: Empty input
 - **WHEN** given an empty string
-- **THEN** the function SHALL return `Ok` with an empty `Vec<TypeAssignment>` (no Bedrock call)
+- **THEN** the method SHALL return `Ok` with an empty `Vec<TypeAssignment>` (no Bedrock call)
 
-### Requirement: JSON deserialization
-The client SHALL deserialize the LLM's JSON response into a `Vec<RawChunkAssignment>` intermediate type, then convert to `Vec<TypeAssignment>`.
+### Requirement: JSON extraction from LLM response
+Before deserialization, the client SHALL extract the JSON array from the raw LLM response:
+1. Strip leading/trailing whitespace.
+2. If markdown fences are present (`` ```json ... ``` `` or `` ``` ... ``` ``), extract content between them.
+3. Find the first `[` and last `]` to locate the JSON array bounds.
 
-The intermediate type includes `chunk_text: String` for debugging. This field is stripped during conversion to `TypeAssignment`.
+#### Scenario: Clean JSON response
+- **WHEN** the LLM returns `[{"chunk_idx": 0, ...}]`
+- **THEN** extraction SHALL pass through unchanged
+
+#### Scenario: Markdown-fenced response
+- **WHEN** the LLM returns `` ```json\n[...]\n``` ``
+- **THEN** extraction SHALL unwrap the fences and parse the inner JSON
+
+#### Scenario: Preamble before JSON
+- **WHEN** the LLM returns "Here is the analysis:\n[...]"
+- **THEN** extraction SHALL find the `[` and `]` bounds and parse the array
+
+### Requirement: JSON deserialization via intermediate types
+The client SHALL deserialize the extracted JSON into `Vec<RawChunkAssignment>` (with `String` fields for `base` and `voiding`), then convert to `Vec<TypeAssignment>` via a `convert_raw()` step that maps strings to enums.
 
 #### Scenario: Valid JSON parsed
 - **WHEN** the LLM returns valid JSON matching the schema
 - **THEN** the client SHALL produce valid `Vec<TypeAssignment>` values
 
 #### Scenario: Malformed JSON
-- **WHEN** the LLM returns invalid JSON
-- **THEN** the client SHALL return `SupertaggerError::JsonParseError` with the raw response
+- **WHEN** the LLM returns content that cannot be parsed as JSON even after extraction
+- **THEN** the client SHALL return `SupertaggerError::JsonParseError` with the response length
+
+#### Scenario: Unknown base type
+- **WHEN** the LLM returns a base type string like "Foo" that doesn't map to any TypeId
+- **THEN** the client SHALL return `SupertaggerError::InvalidOutput`
+
+#### Scenario: Unknown voiding kind
+- **WHEN** the LLM returns a voiding string like "Conditional" that doesn't map to any VoidingKind
+- **THEN** the client SHALL return `SupertaggerError::InvalidOutput`
 
 ### Requirement: Output validation
-After deserialization, the client SHALL validate:
+After deserialization and conversion, the client SHALL validate:
 1. `chunk_idx` values are monotonically non-decreasing.
 2. No `type_expr` is empty.
-3. All `base` values are valid `TypeId` variants.
+3. All `base` values are valid `TypeId` variants (checked during conversion).
 4. `adjoint` values are in range `[-5, 5]`.
 5. At least one chunk is present (for non-empty input).
 
@@ -79,11 +121,11 @@ The client SHALL accept a `SupertaggerConfig` with model_id, region, max_tokens,
 - **THEN** model SHALL be `anthropic.claude-sonnet-4-20250514`, region `us-east-1`, max_tokens 4096, timeout 30s, temperature 0.0
 
 ### Requirement: Error types
-All errors SHALL be captured in a `SupertaggerError` enum using `thiserror`. Each variant SHALL preserve enough context for debugging (raw response text where applicable).
+All errors SHALL be captured in a `SupertaggerError` enum using `thiserror`. `Display` output SHALL NOT dump the entire raw LLM response — use response length or truncation instead. The raw response SHALL be available as a field for programmatic access.
 
 #### Scenario: Error is displayable
 - **WHEN** a `SupertaggerError` occurs
-- **THEN** its `Display` implementation SHALL produce a human-readable message
+- **THEN** its `Display` SHALL produce a concise human-readable message (not kilobytes of raw JSON)
 
 ### Requirement: No panics
 The supertagger client SHALL never panic. All failure modes are captured as `SupertaggerError` variants.
