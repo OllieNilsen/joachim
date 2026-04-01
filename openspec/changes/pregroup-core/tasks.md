@@ -1,75 +1,75 @@
 ## 1. Project Setup
 
-- [ ] 1.1 Convert root Cargo.toml to workspace configuration with `crates/` directory; move existing `src/main.rs` out or remove placeholder
-- [ ] 1.2 Create `crates/joachim-core/Cargo.toml` with `proptest` dev-dependency and optional `serde` feature flag
-- [ ] 1.3 Set up module structure: `lib.rs`, `types.rs`, `parser.rs`, `scope.rs`, `linkage.rs`
+- [x] 1.1 Convert root Cargo.toml to workspace configuration with `crates/` directory; move existing `src/main.rs` out or remove placeholder
+- [x] 1.2 Create `crates/joachim-core/Cargo.toml` with `proptest` dev-dependency and optional `serde` feature flag
+- [x] 1.3 Set up module structure: `lib.rs`, `types.rs`, `parser.rs`, `scope.rs`, `linkage.rs`
 
 ## 2. SimpleType (atomic types with i8 adjoints)
 
-- [ ] 2.1 Implement `TypeId` enum with 9 primitive types: `Dir`, `Ag`, `Usr`, `Role`, `S`, `N`, `Conj`, `Ass`, `Qst`; derive `Copy, Clone, PartialEq, Eq, Hash, Debug`
-- [ ] 2.2 Implement `SimpleType { base: TypeId, adjoint: i8 }` with `Copy, Clone, PartialEq, Eq, Hash, Debug` derives
-- [ ] 2.3 Implement `SimpleType::new(base: TypeId) -> Self` constructor (adjoint=0)
-- [ ] 2.4 Implement `SimpleType::left_adj(self) -> Self`: `self.adjoint.checked_sub(1).expect("adjoint underflow")`
-- [ ] 2.5 Implement `SimpleType::right_adj(self) -> Self`: `self.adjoint.checked_add(1).expect("adjoint overflow")`
-- [ ] 2.6 Implement `SimpleType::base(self) -> TypeId` (returns the base, ignoring adjoint)
-- [ ] 2.7 Implement `can_contract(left: SimpleType, right: SimpleType) -> bool`: `left.base == right.base && right.adjoint.checked_sub(1).map_or(false, |r| left.adjoint == r)` — pure predicate, never panics
-- [ ] 2.8 Implement `Display` for `TypeId`: lowercase name (`dir`, `ag`, etc.)
-- [ ] 2.9 Implement `Display` for `SimpleType`: base name + `^l` repeated for negative adjoint, `^r` repeated for positive adjoint
-- [ ] 2.10 Implement `Arbitrary` for `SimpleType` (proptest): generate random TypeId with adjoint in range [-3, 3]
-- [ ] 2.11 Implement `Serialize`/`Deserialize` for `TypeId` and `SimpleType` behind `serde` feature flag
+- [x] 2.1 Implement `TypeId` enum with 9 primitive types: `Dir`, `Ag`, `Usr`, `Role`, `S`, `N`, `Conj`, `Ass`, `Qst`; derive `Copy, Clone, PartialEq, Eq, Hash, Debug`
+- [x] 2.2 Implement `SimpleType { base: TypeId, adjoint: i8 }` with `Copy, Clone, PartialEq, Eq, Hash, Debug` derives
+- [x] 2.3 Implement `SimpleType::new(base: TypeId) -> Self` constructor (adjoint=0)
+- [x] 2.4 Implement `SimpleType::left_adj(self) -> Self`: `self.adjoint.checked_sub(1).expect("adjoint underflow")`
+- [x] 2.5 Implement `SimpleType::right_adj(self) -> Self`: `self.adjoint.checked_add(1).expect("adjoint overflow")`
+- [x] 2.6 Implement `SimpleType::base(self) -> TypeId` (returns the base, ignoring adjoint)
+- [x] 2.7 Implement `can_contract(left: SimpleType, right: SimpleType) -> bool`: `left.base == right.base && right.adjoint.checked_sub(1).map_or(false, |r| left.adjoint == r)` — pure predicate, never panics
+- [x] 2.8 Implement `Display` for `TypeId`: lowercase name (`dir`, `ag`, etc.)
+- [x] 2.9 Implement `Display` for `SimpleType`: base name + `^l` repeated for negative adjoint, `^r` repeated for positive adjoint
+- [x] 2.10 Implement `Arbitrary` for `SimpleType` (proptest): generate random TypeId with adjoint in range [-3, 3]
+- [x] 2.11 Implement `Serialize`/`Deserialize` for `TypeId` and `SimpleType` behind `serde` feature flag
 
 ## 3. TypeExpr (product of simple types)
 
-- [ ] 3.1 Implement `TypeExpr(Vec<SimpleType>)` with **private** inner field; derive `Clone, PartialEq, Eq, Debug`
-- [ ] 3.2 Implement `TypeExpr::new(types: Vec<SimpleType>) -> Self` constructor
-- [ ] 3.3 Implement `TypeExpr::unit() -> Self` returning empty vec
-- [ ] 3.4 Implement `TypeExpr::concat(self, other: TypeExpr) -> TypeExpr` consuming both inputs via `Vec::extend`
-- [ ] 3.5 Implement `TypeExpr::left_adj(&self) -> TypeExpr`: reverse elements, decrement each adjoint by 1
-- [ ] 3.6 Implement `TypeExpr::right_adj(&self) -> TypeExpr`: reverse elements, increment each adjoint by 1
-- [ ] 3.7 Implement `TypeExpr::as_slice(&self) -> &[SimpleType]`, `is_unit()`, `len()`, `iter()`
-- [ ] 3.8 Implement `From<Vec<SimpleType>> for TypeExpr`
-- [ ] 3.9 Implement `Display` for `TypeExpr`: `·`-separated simple types, or `1` for empty
-- [ ] 3.10 Implement `Arbitrary` for `TypeExpr` (proptest): generate random non-empty exprs of bounded length (1..=5)
-- [ ] 3.11 Implement `Serialize`/`Deserialize` for `TypeExpr` behind `serde` feature flag
+- [x] 3.1 Implement `TypeExpr(Vec<SimpleType>)` with **private** inner field; derive `Clone, PartialEq, Eq, Debug`
+- [x] 3.2 Implement `TypeExpr::new(types: Vec<SimpleType>) -> Self` constructor
+- [x] 3.3 Implement `TypeExpr::unit() -> Self` returning empty vec
+- [x] 3.4 Implement `TypeExpr::concat(self, other: TypeExpr) -> TypeExpr` consuming both inputs via `Vec::extend`
+- [x] 3.5 Implement `TypeExpr::left_adj(&self) -> TypeExpr`: reverse elements, decrement each adjoint by 1
+- [x] 3.6 Implement `TypeExpr::right_adj(&self) -> TypeExpr`: reverse elements, increment each adjoint by 1
+- [x] 3.7 Implement `TypeExpr::as_slice(&self) -> &[SimpleType]`, `is_unit()`, `len()`, `iter()`
+- [x] 3.8 Implement `From<Vec<SimpleType>> for TypeExpr`
+- [x] 3.9 Implement `Display` for `TypeExpr`: `·`-separated simple types, or `1` for empty
+- [x] 3.10 Implement `Arbitrary` for `TypeExpr` (proptest): generate random non-empty exprs of bounded length (1..=5)
+- [x] 3.11 Implement `Serialize`/`Deserialize` for `TypeExpr` behind `serde` feature flag
 
 ## 4. VoidingKind and TypeAssignment
 
-- [ ] 4.1 Implement `VoidingKind` enum: `Hypothetical`, `Negation`, `Meta`; derive `Copy, Clone, PartialEq, Eq, Debug`
-- [ ] 4.2 Implement `TypeAssignment { chunk_idx: u16, type_expr: TypeExpr, voiding: Option<VoidingKind> }`
-- [ ] 4.3 Implement `Display` for `TypeAssignment` showing chunk index, type, and voiding annotation
-- [ ] 4.4 Implement `Serialize`/`Deserialize` for `VoidingKind` and `TypeAssignment` behind `serde` feature flag
-- [ ] 4.5 Implement `Arbitrary` for `VoidingKind` (proptest): uniform over 3 variants
-- [ ] 4.6 Implement `Arbitrary` for `TypeAssignment` (proptest): random TypeExpr (non-empty), random `Option<VoidingKind>`, chunk_idx placeholder (set by ParseInput generator)
+- [x] 4.1 Implement `VoidingKind` enum: `Hypothetical`, `Negation`, `Meta`; derive `Copy, Clone, PartialEq, Eq, Debug`
+- [x] 4.2 Implement `TypeAssignment { chunk_idx: u16, type_expr: TypeExpr, voiding: Option<VoidingKind> }`
+- [x] 4.3 Implement `Display` for `TypeAssignment` showing chunk index, type, and voiding annotation
+- [x] 4.4 Implement `Serialize`/`Deserialize` for `VoidingKind` and `TypeAssignment` behind `serde` feature flag
+- [x] 4.5 Implement `Arbitrary` for `VoidingKind` (proptest): uniform over 3 variants
+- [x] 4.6 Implement `Arbitrary` for `TypeAssignment` (proptest): random TypeExpr (non-empty), random `Option<VoidingKind>`, chunk_idx placeholder (set by ParseInput generator)
 
 ## 5. Type System Property Tests
 
-- [ ] 5.1 Property: Left contraction — `can_contract(a.left_adj(), a)` is true for all SimpleTypes
-- [ ] 5.2 Property: Right contraction — `can_contract(a, a.right_adj())` is true for all SimpleTypes
-- [ ] 5.3 Property: Contraction formula consistency — `can_contract(x, y)` iff `x.base == y.base && y.adjoint.checked_sub(1).map_or(false, |r| x.adjoint == r)`
-- [ ] 5.4 Property: Mixed adjoint cancellation — `a.left_adj().right_adj() == a` and `a.right_adj().left_adj() == a`
-- [ ] 5.5 Property: Double left adjoint is distinct — `a.left_adj().left_adj() != a`
-- [ ] 5.6 Property: Double right adjoint is distinct — `a.right_adj().right_adj() != a`
-- [ ] 5.7 Property: Mismatched base types don't contract
-- [ ] 5.8 Property: Mismatched adjoint gap doesn't contract
-- [ ] 5.9 Property: TypeExpr concat associativity
-- [ ] 5.10 Property: TypeExpr unit identity (left and right)
-- [ ] 5.11 Property: TypeExpr left adjoint is contravariant (reverse + decrement)
-- [ ] 5.12 Property: TypeExpr right adjoint is contravariant (reverse + increment)
-- [ ] 5.13 Property: TypeExpr adjoint involution — `right_adj(left_adj(e)) == e` and vice versa
-- [ ] 5.14 Property: SimpleType equality is reflexive, symmetric, transitive
-- [ ] 5.15 Property: left_adj panics on i8::MIN adjoint; right_adj panics on i8::MAX adjoint
-- [ ] 5.16 Property: can_contract never panics — test with all i8 values including i8::MIN, i8::MAX
+- [x] 5.1 Property: Left contraction — `can_contract(a.left_adj(), a)` is true for all SimpleTypes
+- [x] 5.2 Property: Right contraction — `can_contract(a, a.right_adj())` is true for all SimpleTypes
+- [x] 5.3 Property: Contraction formula consistency — `can_contract(x, y)` iff `x.base == y.base && y.adjoint.checked_sub(1).map_or(false, |r| x.adjoint == r)`
+- [x] 5.4 Property: Mixed adjoint cancellation — `a.left_adj().right_adj() == a` and `a.right_adj().left_adj() == a`
+- [x] 5.5 Property: Double left adjoint is distinct — `a.left_adj().left_adj() != a`
+- [x] 5.6 Property: Double right adjoint is distinct — `a.right_adj().right_adj() != a`
+- [x] 5.7 Property: Mismatched base types don't contract
+- [x] 5.8 Property: Mismatched adjoint gap doesn't contract
+- [x] 5.9 Property: TypeExpr concat associativity
+- [x] 5.10 Property: TypeExpr unit identity (left and right)
+- [x] 5.11 Property: TypeExpr left adjoint is contravariant (reverse + decrement)
+- [x] 5.12 Property: TypeExpr right adjoint is contravariant (reverse + increment)
+- [x] 5.13 Property: TypeExpr adjoint involution — `right_adj(left_adj(e)) == e` and vice versa
+- [x] 5.14 Property: SimpleType equality is reflexive, symmetric, transitive
+- [x] 5.15 Property: left_adj panics on i8::MIN adjoint; right_adj panics on i8::MAX adjoint
+- [x] 5.16 Property: can_contract never panics — test with all i8 values including i8::MIN, i8::MAX
 
 ## 6. LinkageGraph
 
-- [ ] 6.1 Implement `NodeMeta { chunk_idx: u16, simple_type: SimpleType }` with `Copy, Clone, Debug` derives
-- [ ] 6.2 Implement `LinkageEdge { left: u16, right: u16 }` with `Copy, Clone, Debug, PartialEq, Eq` derives
-- [ ] 6.3 Implement `LinkageGraph { meta: Vec<NodeMeta>, edges: Vec<LinkageEdge>, timed_out: bool }`
-- [ ] 6.4 Implement `LinkageGraph::edges_from(&self, pos: u16) -> impl Iterator<Item = &LinkageEdge>`: find edges where `left == pos` via binary search; note: finding edges where `right == pos` requires O(E) scan
-- [ ] 6.5 Implement `LinkageGraph::verify(&self) -> bool`: check all edges are valid contractions, non-crossing, and within bounds
-- [ ] 6.6 Implement `LinkageGraph::edge_count(&self) -> usize`
-- [ ] 6.7 Implement `Display` for `LinkageGraph`: human-readable visualization showing positions and edges
-- [ ] 6.8 Implement `Serialize` for `NodeMeta`, `LinkageEdge`, `LinkageGraph` behind `serde` feature flag
+- [x] 6.1 Implement `NodeMeta { chunk_idx: u16, simple_type: SimpleType }` with `Copy, Clone, Debug` derives
+- [x] 6.2 Implement `LinkageEdge { left: u16, right: u16 }` with `Copy, Clone, Debug, PartialEq, Eq` derives
+- [x] 6.3 Implement `LinkageGraph { meta: Vec<NodeMeta>, edges: Vec<LinkageEdge>, timed_out: bool }`
+- [x] 6.4 Implement `LinkageGraph::edges_from(&self, pos: u16) -> impl Iterator<Item = &LinkageEdge>`: find edges where `left == pos` via binary search; note: finding edges where `right == pos` requires O(E) scan
+- [x] 6.5 Implement `LinkageGraph::verify(&self) -> bool`: check all edges are valid contractions, non-crossing, and within bounds
+- [x] 6.6 Implement `LinkageGraph::edge_count(&self) -> usize`
+- [x] 6.7 Implement `Display` for `LinkageGraph`: human-readable visualization showing positions and edges
+- [x] 6.8 Implement `Serialize` for `NodeMeta`, `LinkageEdge`, `LinkageGraph` behind `serde` feature flag
 
 ## 7. Parser
 

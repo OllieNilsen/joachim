@@ -1,0 +1,17 @@
+[package]
+name = "joachim-core"
+version = "0.1.0"
+edition = "2021"
+description = "Pregroup grammar engine for prompt injection detection"
+
+[dependencies]
+smallvec = "1"
+serde = { version = "1", features = ["derive"], optional = true }
+serde_json = { version = "1", optional = true }
+
+[dev-dependencies]
+proptest = "1"
+
+[features]
+default = []
+serde = ["dep:serde", "dep:serde_json"]
