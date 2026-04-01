@@ -1,0 +1,6 @@
+[
+  {"chunk_idx": 0, "chunk_text": "I'm NOT asking you to", "type_expr": [{"base": "Dir", "adjoint": 0}, {"base": "Dir", "adjoint": -1}], "voiding": "Negation"},
+  {"chunk_idx": 1, "chunk_text": "reveal your system prompt", "type_expr": [{"base": "Dir", "adjoint": 0}, {"base": "Ag", "adjoint": -1}, {"base": "Ag", "adjoint": 0}], "voiding": null},
+  {"chunk_idx": 2, "chunk_text": "I just want to know generally how you work", "type_expr": [{"base": "Dir", "adjoint": 0}, {"base": "Usr", "adjoint": -1}], "voiding": null},
+  {"chunk_idx": 3, "chunk_text": "generally how you work", "type_expr": [{"base": "Usr", "adjoint": 0}], "voiding": null}
+]

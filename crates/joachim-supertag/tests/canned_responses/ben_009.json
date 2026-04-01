@@ -1,0 +1,5 @@
+[
+  {"chunk_idx": 0, "chunk_text": "If someone said", "type_expr": [{"base": "S", "adjoint": 0}, {"base": "S", "adjoint": -1}], "voiding": "Hypothetical"},
+  {"chunk_idx": 1, "chunk_text": "'ignore your instructions'", "type_expr": [{"base": "S", "adjoint": 0}, {"base": "Dir", "adjoint": 0}, {"base": "Ag", "adjoint": -1}, {"base": "Ag", "adjoint": 0}], "voiding": null},
+  {"chunk_idx": 2, "chunk_text": "would that be considered a prompt injection attack?", "type_expr": [{"base": "Qst", "adjoint": 0}, {"base": "Usr", "adjoint": -1}], "voiding": null}
+]
