@@ -1,0 +1,73 @@
+## 1. CI Runner Infra (Pulumi)
+
+- [ ] 1.1 Create `infra/pulumi/ci-runner/` with `Pulumi.yaml` (name: `joachim-ci-runner`, runtime: nodejs, backend: s3)
+- [ ] 1.2 Create `package.json` with `@pulumi/pulumi`, `@pulumi/aws`, `@pulumi/awsx` dependencies
+- [ ] 1.3 Add Pulumi stack transformation for mandatory `Project: joachim` tag on all AWS resources
+- [ ] 1.4 Implement VPC: public subnets, no NAT, 2 AZs
+- [ ] 1.5 Implement security group: egress-only, no ingress
+- [ ] 1.6 Implement launch template: IMDSv2 enforced, no SSH key, runner SG
+- [ ] 1.7 Implement sccache S3 bucket (`joachim-ci-sccache-us-east-1`) with lifecycle policies (14d PR, 90d main)
+- [ ] 1.8 Implement runner instance IAM role + instance profile with scoped S3 access
+- [ ] 1.9 Implement OIDC controller role restricted to `repo:OllieNilsen/joachim:ref:refs/heads/*`
+- [ ] 1.10 Implement controller IAM policy: `ec2:RunInstances`, `ec2:TerminateInstances`, `ec2:DescribeInstances`, `iam:PassRole`, `ec2:CreateTags`
+- [ ] 1.11 Implement webhook ingest Lambda: signature validation, DynamoDB dedup, EventBridge forwarding
+- [ ] 1.12 Implement webhook API Gateway HTTP API + route + stage
+- [ ] 1.13 Implement DynamoDB deliveries table with TTL
+- [ ] 1.14 Implement GC Lambda: terminate tagged orphan runners on `workflow_job.completed`
+- [ ] 1.15 Implement GC EventBridge rule targeting the GC Lambda
+- [ ] 1.16 Implement spot interruption interceptor Lambda
+- [ ] 1.17 Implement spot interruption EventBridge rule
+- [ ] 1.18 Implement CloudWatch alarms: GC DLQ, GC errors, spot interceptor errors
+- [ ] 1.19 Implement CloudWatch reliability dashboard
+- [ ] 1.20 Export stack outputs: `controllerRoleArn`, `launchTemplateId`, `primarySubnetId`, `securityGroupId`, `sccacheBucketName`, `runnerInstanceProfileArn`, `CI_RUNNER_*` variables
+- [ ] 1.21 Create `scripts/sync-ci-runner-vars.sh` (adapted from druum)
+
+## 2. CI Workflows (GitHub Actions)
+
+- [ ] 2.1 Create `.github/workflows/reusable-rust-ci.yml`: static-checks (fmt, audit on ubuntu-latest) + compile-and-test-ec2 (clippy, test on self-hosted EC2 with sccache)
+- [ ] 2.2 Create `.github/workflows/joachim-ci.yml`: main orchestrator — on PR and push to main, call reusable-rust-ci with `manifest-path: Cargo.toml`, `use-ec2-runner: true`
+- [ ] 2.3 Create `.github/workflows/deploy-ci-runner.yml`: on push to main when `infra/pulumi/ci-runner/**` changes, run `pulumi up` + sync vars
+- [ ] 2.4 Add concurrency groups to all workflows (cancel in-progress on new push)
+
+## 3. API Infra (Pulumi)
+
+- [ ] 3.1 Create `infra/pulumi/api/` with `Pulumi.yaml` (name: `joachim-api`, runtime: nodejs)
+- [ ] 3.2 Create `package.json` with Pulumi dependencies
+- [ ] 3.3 Add Pulumi stack transformation for `Project: joachim` tagging
+- [ ] 3.4 Implement Lambda execution IAM role: `AWSLambdaBasicExecutionRole` + `bedrock:InvokeModel` scoped to `anthropic.claude-sonnet-4-20250514`
+- [ ] 3.5 Implement Lambda function: `provided.al2023` runtime, `arm64` architecture, 256MB memory, 60s timeout, env vars (`MODEL_ID`, `AWS_REGION`)
+- [ ] 3.6 Implement API Gateway HTTP API with `POST /detect` route → Lambda integration
+- [ ] 3.7 Enable API Gateway access logging to CloudWatch Logs
+- [ ] 3.8 Implement CloudWatch alarms: Lambda errors (>0 in 5min), p99 duration (>30s)
+- [ ] 3.9 Export stack outputs: `apiUrl`, `lambdaFunctionName`, `lambdaRoleArn`
+
+## 4. Lambda Handler Crate
+
+- [ ] 4.1 Create `crates/joachim-lambda/Cargo.toml`: depend on `joachim-core`, `joachim-supertag`, `lambda_http`, `lambda_runtime`, `tokio`, `serde_json`, `once_cell`
+- [ ] 4.2 Add `joachim-lambda` to workspace members
+- [ ] 4.3 Implement request types: `DetectRequest { text: String }`, `DetectResponse { verdict, violations, prompt_version, timed_out }`
+- [ ] 4.4 Implement `Supertagger` initialization via `once_cell::sync::Lazy` (reused across warm invocations)
+- [ ] 4.5 Implement handler function: parse request → supertag → parse → scope check → return response
+- [ ] 4.6 Implement error mapping: `SupertaggerError::InputTooLong` → 400, other `SupertaggerError` → 502, bad request → 400
+- [ ] 4.7 Implement `main()` with `lambda_http::run(service_fn(handler))`
+- [ ] 4.8 Write unit test: valid request produces expected response structure
+- [ ] 4.9 Write unit test: empty text returns Clean
+- [ ] 4.10 Write unit test: missing text field returns 400
+- [ ] 4.11 Write unit test: malformed JSON returns 400
+
+## 5. Deploy API Workflow
+
+- [ ] 5.1 Create `.github/workflows/deploy-api.yml`: on push to main when `infra/pulumi/api/**` or `crates/joachim-lambda/**` changes
+- [ ] 5.2 Add step: install Rust toolchain + `aarch64-unknown-linux-musl` target
+- [ ] 5.3 Add step: cross-compile Lambda binary (`cargo build --release --target aarch64-unknown-linux-musl -p joachim-lambda`)
+- [ ] 5.4 Add step: package binary as `bootstrap` in zip for Lambda `provided.al2023`
+- [ ] 5.5 Add step: OIDC auth + `pulumi up` for the api stack
+- [ ] 5.6 Add step: smoke test — `curl -X POST $API_URL/detect -d '{"text":"test"}'` and assert 200
+
+## 6. Documentation
+
+- [ ] 6.1 Add README to `infra/pulumi/ci-runner/` explaining the stack
+- [ ] 6.2 Add README to `infra/pulumi/api/` explaining the stack
+- [ ] 6.3 Add README to `crates/joachim-lambda/` with usage and local testing instructions
+- [ ] 6.4 Update ROADMAP.md to reflect deploy-pipeline completion
+- [ ] 6.5 Document cost tracking: how to use AWS Cost Explorer with `Project: joachim` tag
