@@ -1,3 +1,3 @@
 [workspace]
-members = ["crates/joachim-core", "crates/joachim-supertag"]
+members = ["crates/joachim-core", "crates/joachim-supertag", "crates/joachim-lambda"]
 resolver = "2"

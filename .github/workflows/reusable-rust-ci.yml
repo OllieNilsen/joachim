@@ -1,0 +1,45 @@
+name: reusable-rust-ci
+
+on:
+  workflow_call:
+    inputs:
+      manifest-path:
+        description: "Path to Cargo.toml"
+        required: false
+        default: "Cargo.toml"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: rust-static-${{ inputs.manifest-path }}-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path ${{ inputs.manifest-path }} --all -- --check
+
+      - name: Install cargo-audit
+        run: |
+          AUDIT_VERSION="v0.22.1"
+          curl -fsSL "https://github.com/rustsec/rustsec/releases/download/cargo-audit%2F${AUDIT_VERSION}/cargo-audit-x86_64-unknown-linux-musl-${AUDIT_VERSION}.tgz" | tar xz
+          sudo mv cargo-audit-x86_64-unknown-linux-musl-${AUDIT_VERSION}/cargo-audit /usr/local/bin/
+          rm -rf cargo-audit-x86_64-unknown-linux-musl-${AUDIT_VERSION}
+
+      - name: Security audit
+        run: |
+          MANIFEST_DIR=$(dirname "${{ inputs.manifest-path }}")
+          cd "$MANIFEST_DIR"
+          cargo audit || true

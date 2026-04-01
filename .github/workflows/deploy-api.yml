@@ -1,0 +1,128 @@
+name: Deploy JOACHIM API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "infra/pulumi/api/**"
+      - "crates/joachim-lambda/**"
+      - "crates/joachim-core/**"
+      - "crates/joachim-supertag/**"
+      - ".github/workflows/deploy-api.yml"
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-api-${{ github.ref }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_PULUMI_DEPLOY }}
+          aws-region: us-east-1
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-unknown-linux-musl
+
+      - name: Install cargo-zigbuild
+        run: pip install cargo-zigbuild
+
+      - name: Cross-compile Lambda binary
+        run: cargo zigbuild --release --target aarch64-unknown-linux-musl -p joachim-lambda
+
+      - name: Package Lambda zip
+        run: |
+          cp target/aarch64-unknown-linux-musl/release/bootstrap bootstrap
+          zip -j lambda.zip bootstrap
+          rm bootstrap
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Pulumi dependencies
+        working-directory: infra/pulumi/api
+        run: npm ci
+
+      - name: Pulumi Up
+        uses: pulumi/actions@v5
+        with:
+          command: up
+          stack-name: prod
+          work-dir: infra/pulumi/api
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+
+      - name: Update Lambda code
+        run: |
+          FUNCTION_NAME=$(pulumi stack output lambdaFunctionName --stack prod --cwd infra/pulumi/api)
+          aws lambda update-function-code \
+            --function-name "$FUNCTION_NAME" \
+            --zip-file fileb://lambda.zip \
+            --region us-east-1
+          aws lambda wait function-updated --function-name "$FUNCTION_NAME" --region us-east-1
+
+      - name: Read smoke test credentials
+        id: smoke-creds
+        run: |
+          SECRET_ARN=$(pulumi stack output smokeTestSecretArn --stack prod --cwd infra/pulumi/api)
+          SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id "$SECRET_ARN" --query SecretString --output text --region us-east-1)
+          echo "username=$(echo "$SECRET_JSON" | jq -r .username)" >> "$GITHUB_OUTPUT"
+          echo "::add-mask::$(echo "$SECRET_JSON" | jq -r .password)"
+          echo "password=$(echo "$SECRET_JSON" | jq -r .password)" >> "$GITHUB_OUTPUT"
+
+      - name: Acquire Cognito token
+        id: cognito
+        run: |
+          USER_POOL_CLIENT_ID=$(pulumi stack output userPoolClientId --stack prod --cwd infra/pulumi/api)
+          TOKEN_JSON=$(aws cognito-idp initiate-auth \
+            --auth-flow USER_PASSWORD_AUTH \
+            --client-id "$USER_POOL_CLIENT_ID" \
+            --auth-parameters "USERNAME=${{ steps.smoke-creds.outputs.username }},PASSWORD=${{ steps.smoke-creds.outputs.password }}" \
+            --region us-east-1)
+          ID_TOKEN=$(echo "$TOKEN_JSON" | jq -r '.AuthenticationResult.IdToken')
+          echo "::add-mask::$ID_TOKEN"
+          echo "token=$ID_TOKEN" >> "$GITHUB_OUTPUT"
+
+      - name: Smoke test — authenticated request
+        run: |
+          API_URL=$(pulumi stack output apiUrl --stack prod --cwd infra/pulumi/api)
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -H "Authorization: Bearer ${{ steps.cognito.outputs.token }}" \
+            -H "Content-Type: application/json" \
+            -X POST "$API_URL/detect" \
+            -d '{"text": "test input"}')
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          echo "Status: $HTTP_CODE"
+          echo "Body: $BODY"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Smoke test failed: expected 200, got $HTTP_CODE"
+            exit 1
+          fi
+
+      - name: Smoke test — unauthenticated request returns 401
+        run: |
+          API_URL=$(pulumi stack output apiUrl --stack prod --cwd infra/pulumi/api)
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Content-Type: application/json" \
+            -X POST "$API_URL/detect" \
+            -d '{"text": "test"}')
+          echo "Unauthenticated status: $HTTP_CODE"
+          if [ "$HTTP_CODE" != "401" ]; then
+            echo "Expected 401 for unauthenticated request, got $HTTP_CODE"
+            exit 1
+          fi
