@@ -24,7 +24,7 @@ All resources share the same AWS account as druum but use separate Pulumi stacks
 **Non-Goals:**
 - Multi-environment (staging/prod) — MVP is single environment
 - Custom domain / TLS cert — use API Gateway default URL
-- Authentication on the API — add in a later change
+- User self-service signup — admin creates users manually in Cognito
 - CDK (we use Pulumi)
 - Selective CI routing (joachim is a small repo, not a monorepo)
 
@@ -127,14 +127,25 @@ The main CI workflow calls the reusable workflow on PR and push to main.
 - Compilation and tests need EC2 — the AWS SDK dependency tree is too large for free runners.
 - Reusable workflow is parameterized by manifest path and runner label.
 
-### Decision 6: API Gateway Function URL vs HTTP API
+### Decision 6: API Gateway HTTP API with Cognito JWT Authorizer
 
-**Choice**: Use API Gateway HTTP API (not Lambda function URL).
+**Choice**: Use API Gateway HTTP API with a Cognito User Pool JWT authorizer. All requests to `POST /detect` must include a valid JWT `Authorization: Bearer <token>` header. Unauthenticated requests receive 401.
+
+```
+Client → (JWT Bearer) → API Gateway HTTP API → JWT Authorizer (Cognito) → Lambda
+```
+
+**Cognito User Pool setup**:
+- A Cognito User Pool (`joachim-api-users`) with email-based sign-in.
+- An App Client (`joachim-api-client`) with `ALLOW_USER_PASSWORD_AUTH` flow (for programmatic access via `InitiateAuth`). No client secret (public client for CLI/SDK use).
+- Admin creates users manually — no self-service signup (MVP).
+- The API Gateway JWT authorizer validates the `id_token` or `access_token` against the User Pool's JWKS endpoint.
 
 **Rationale**:
-- Function URLs are simpler but lack throttling, request validation, and usage plans.
-- API Gateway HTTP API adds throttling (protect against abuse), access logging, and a path to add auth later.
-- Cost difference is negligible at MVP scale.
+- An unauthenticated endpoint backed by Bedrock is a direct billing risk — anyone who discovers the URL can invoke arbitrarily expensive LLM calls.
+- Cognito is AWS-native, zero-ops, and integrates natively with API Gateway HTTP API's built-in JWT authorizer (no Lambda authorizer needed).
+- JWT validation happens at the API Gateway layer before the Lambda is invoked — unauthorized requests don't cost Lambda compute or Bedrock tokens.
+- `ALLOW_USER_PASSWORD_AUTH` enables programmatic token acquisition for API clients without a browser (CLI, SDK, CI tests).
 
 ### Decision 7: Lambda Handler Crate
 
@@ -176,5 +187,8 @@ async fn main() -> Result<(), Error> {
 **[Risk] Shared account resource naming collisions with druum**
 → Mitigation: All joachim resources prefixed `joachim-`. Different Pulumi stacks. Tags enable cost separation.
 
-**[Risk] No API authentication for MVP**
-→ Mitigation: Acceptable for internal testing. API Gateway throttling limits abuse. Auth (API keys or IAM) is a follow-up change.
+**[Risk] Cognito token management overhead for API clients**
+→ Mitigation: Clients call `InitiateAuth` to get a JWT, then pass it in `Authorization: Bearer` header. Tokens last 1 hour by default. Simple enough for programmatic use. A helper script or SDK wrapper can be added later.
+
+**[Risk] API Gateway throttling as cost backstop**
+→ Mitigation: API Gateway default throttle (10,000 req/s burst, 5,000 sustained) is far above MVP needs. We set a lower default rate limit (100 req/s) on the stage to bound worst-case cost even with valid tokens.

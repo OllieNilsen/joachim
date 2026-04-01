@@ -13,7 +13,7 @@ All JOACHIM-specific AWS resources are tagged `Project: joachim` for cost tracki
 ## What Changes
 
 - Add `infra/pulumi/ci-runner/` — Pulumi stack for ephemeral EC2 CI runners (adapted from druum)
-- Add `infra/pulumi/api/` — Pulumi stack for Lambda detection endpoint + API Gateway + Bedrock IAM
+- Add `infra/pulumi/api/` — Pulumi stack for Lambda detection endpoint + API Gateway + Cognito JWT auth + Bedrock IAM
 - Add `.github/workflows/` — CI pipeline (reusable Rust CI), CI runner deploy, API deploy
 - Add `scripts/sync-ci-runner-vars.sh` — sync Pulumi outputs to GitHub repo variables
 - Add `crates/joachim-lambda/` — thin Lambda handler crate wiring the detection pipeline
@@ -25,7 +25,7 @@ All JOACHIM-specific AWS resources are tagged `Project: joachim` for cost tracki
 
 - `ci-pipeline`: GitHub Actions CI pipeline with ephemeral EC2 runners, sccache, fmt/clippy/test. Triggers on PR and push to main.
 - `ci-runner-infra`: Pulumi IaC for VPC, launch template, sccache S3 bucket, OIDC controller role, GC Lambda, spot interceptor. Adapted from druum with joachim-specific naming and tagging.
-- `api-infra`: Pulumi IaC for the detection API — Lambda function, API Gateway HTTP API (or function URL), IAM role with `bedrock:InvokeModel` permission, CloudWatch alarms.
+- `api-infra`: Pulumi IaC for the detection API — Lambda function, API Gateway HTTP API with Cognito JWT authorizer, Cognito User Pool (admin-managed), IAM role with scoped `bedrock:InvokeModel` permission, CloudWatch alarms, throttling.
 - `lambda-handler`: Rust Lambda crate that deserializes HTTP requests, runs supertag → parse → scope check, returns verdict JSON.
 
 ### Modified Capabilities
@@ -38,6 +38,6 @@ All JOACHIM-specific AWS resources are tagged `Project: joachim` for cost tracki
 - **New IaC**: `infra/pulumi/ci-runner/` and `infra/pulumi/api/`
 - **New workflows**: `.github/workflows/` (CI, deploy-ci-runner, deploy-api)
 - **Dependencies**: `lambda_http`, `lambda_runtime`, `tokio` (Lambda crate); `@pulumi/pulumi`, `@pulumi/aws`, `@pulumi/awsx` (IaC)
-- **AWS resources**: VPC, EC2 launch template, S3 bucket, IAM roles (OIDC + Lambda), API Gateway, Lambda function, CloudWatch alarms — all tagged `Project: joachim`
+- **AWS resources**: VPC, EC2 launch template, S3 bucket, IAM roles (OIDC + Lambda), API Gateway, Cognito User Pool, Lambda function, CloudWatch alarms — all tagged `Project: joachim`
 - **Secrets required**: `AWS_ROLE_ARN_PULUMI_DEPLOY` (OIDC role for Pulumi), `githubWebhookSecret` (Pulumi config)
 - **Shared account**: Same AWS account as druum, separate Pulumi stacks. Shares the existing OIDC provider.

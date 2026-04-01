@@ -34,12 +34,17 @@
 - [ ] 3.1 Create `infra/pulumi/api/` with `Pulumi.yaml` (name: `joachim-api`, runtime: nodejs)
 - [ ] 3.2 Create `package.json` with Pulumi dependencies
 - [ ] 3.3 Add Pulumi stack transformation for `Project: joachim` tagging
-- [ ] 3.4 Implement Lambda execution IAM role: `AWSLambdaBasicExecutionRole` + `bedrock:InvokeModel` scoped to `anthropic.claude-sonnet-4-20250514`
-- [ ] 3.5 Implement Lambda function: `provided.al2023` runtime, `arm64` architecture, 256MB memory, 60s timeout, env vars (`MODEL_ID`, `AWS_REGION`)
-- [ ] 3.6 Implement API Gateway HTTP API with `POST /detect` route → Lambda integration
-- [ ] 3.7 Enable API Gateway access logging to CloudWatch Logs
-- [ ] 3.8 Implement CloudWatch alarms: Lambda errors (>0 in 5min), p99 duration (>30s)
-- [ ] 3.9 Export stack outputs: `apiUrl`, `lambdaFunctionName`, `lambdaRoleArn`
+- [ ] 3.4 Implement Cognito User Pool (`joachim-api-users`): email sign-in, no self-service signup, tagged `Project: joachim`
+- [ ] 3.5 Implement Cognito App Client (`joachim-api-client`): `ALLOW_USER_PASSWORD_AUTH` flow, no client secret, no OAuth flows
+- [ ] 3.6 Implement Lambda execution IAM role: `AWSLambdaBasicExecutionRole` + `bedrock:InvokeModel` scoped to `anthropic.claude-sonnet-4-20250514`
+- [ ] 3.7 Implement Lambda function: `provided.al2023` runtime, `arm64` architecture, 256MB memory, 60s timeout, env vars (`MODEL_ID`, `AWS_REGION`)
+- [ ] 3.8 Implement API Gateway HTTP API with `POST /detect` route → Lambda integration
+- [ ] 3.9 Implement API Gateway JWT authorizer: issuer = Cognito User Pool URL, audience = App Client ID
+- [ ] 3.10 Attach JWT authorizer to `POST /detect` route (all requests must present valid Bearer token)
+- [ ] 3.11 Set API Gateway stage default route throttle: 100 burst, 50 sustained
+- [ ] 3.12 Enable API Gateway access logging to CloudWatch Logs
+- [ ] 3.13 Implement CloudWatch alarms: Lambda errors (>0 in 5min), p99 duration (>30s)
+- [ ] 3.14 Export stack outputs: `apiUrl`, `lambdaFunctionName`, `lambdaRoleArn`, `userPoolId`, `userPoolClientId`
 
 ## 4. Lambda Handler Crate
 
@@ -62,7 +67,8 @@
 - [ ] 5.3 Add step: cross-compile Lambda binary (`cargo build --release --target aarch64-unknown-linux-musl -p joachim-lambda`)
 - [ ] 5.4 Add step: package binary as `bootstrap` in zip for Lambda `provided.al2023`
 - [ ] 5.5 Add step: OIDC auth + `pulumi up` for the api stack
-- [ ] 5.6 Add step: smoke test — `curl -X POST $API_URL/detect -d '{"text":"test"}'` and assert 200
+- [ ] 5.6 Add step: smoke test — acquire Cognito token via `InitiateAuth` (using test user creds from Secrets Manager), `curl -H "Authorization: Bearer $TOKEN" -X POST $API_URL/detect -d '{"text":"test"}'` and assert 200
+- [ ] 5.7 Add step: smoke test — unauthenticated request returns 401
 
 ## 6. Documentation
 
@@ -71,3 +77,4 @@
 - [ ] 6.3 Add README to `crates/joachim-lambda/` with usage and local testing instructions
 - [ ] 6.4 Update ROADMAP.md to reflect deploy-pipeline completion
 - [ ] 6.5 Document cost tracking: how to use AWS Cost Explorer with `Project: joachim` tag
+- [ ] 6.6 Document authentication: how to create a Cognito user, acquire a token via `InitiateAuth`, and call the API
