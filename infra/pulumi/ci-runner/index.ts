@@ -8,7 +8,25 @@ import * as awsx from "@pulumi/awsx";
 
 const projectTags = { Project: "joachim" };
 
+// Resource types that do NOT support tags — skip them in the transformation.
+const untaggableTypes = new Set([
+    "aws:iam/rolePolicyAttachment:RolePolicyAttachment",
+    "aws:iam/rolePolicy:RolePolicy",
+    "aws:iam/instanceProfile:InstanceProfile",
+    "aws:lambda/permission:Permission",
+    "aws:cloudwatch/eventTarget:EventTarget",
+    "aws:s3/bucketLifecycleConfigurationV2:BucketLifecycleConfigurationV2",
+    "aws:apigatewayv2/integration:Integration",
+    "aws:apigatewayv2/route:Route",
+    "aws:apigatewayv2/stage:Stage",
+    "aws:secretsmanager/secretVersion:SecretVersion",
+    "aws:cloudwatch/dashboard:Dashboard",
+]);
+
 pulumi.runtime.registerStackTransformation((args) => {
+    if (untaggableTypes.has(args.type)) {
+        return { props: args.props, opts: args.opts };
+    }
     if (args.props.tags !== undefined) {
         args.props.tags = { ...args.props.tags, ...projectTags };
     } else if (args.type.startsWith("aws:")) {
@@ -193,10 +211,11 @@ new aws.iam.RolePolicy("joachim-ci-controller-policy", {
             ciVpc.publicSubnetIds,
             runnerSecurityGroup.id,
             runnerInstanceProfile.arn,
+            runnerRole.arn,
             accountId,
             region,
         ])
-        .apply(([subnetIds, sgId, _profileArn, accId, rgn]) =>
+        .apply(([subnetIds, sgId, _profileArn, roleArn, accId, rgn]) =>
             JSON.stringify({
                 Version: "2012-10-17",
                 Statement: [
@@ -233,7 +252,7 @@ new aws.iam.RolePolicy("joachim-ci-controller-policy", {
                     {
                         Effect: "Allow",
                         Action: "iam:PassRole",
-                        Resource: [runnerRole.arn],
+                        Resource: [roleArn],
                     },
                     {
                         Effect: "Allow",
@@ -283,8 +302,8 @@ new aws.iam.RolePolicyAttachment("joachim-ci-webhook-ingest-basic-logs", {
 new aws.iam.RolePolicy("joachim-ci-webhook-ingest-policy", {
     role: ingestRole.id,
     policy: pulumi
-        .all([webhookDeliveryTable.arn])
-        .apply(([tableArn]) =>
+        .all([webhookDeliveryTable.arn, ingestDlq.arn])
+        .apply(([tableArn, dlqArn]) =>
             JSON.stringify({
                 Version: "2012-10-17",
                 Statement: [
@@ -304,7 +323,7 @@ new aws.iam.RolePolicy("joachim-ci-webhook-ingest-policy", {
                         Sid: "DlqWrite",
                         Effect: "Allow",
                         Action: ["sqs:SendMessage"],
-                        Resource: [ingestDlq.arn],
+                        Resource: [dlqArn],
                     },
                 ],
             }),
@@ -478,8 +497,8 @@ new aws.iam.RolePolicyAttachment("joachim-ci-gc-basic-logs", {
 new aws.iam.RolePolicy("joachim-ci-gc-policy", {
     role: gcRole.id,
     policy: pulumi
-        .all([accountId, region])
-        .apply(([accId, rgn]) =>
+        .all([accountId, region, gcDlq.arn])
+        .apply(([accId, rgn, dlqArn]) =>
             JSON.stringify({
                 Version: "2012-10-17",
                 Statement: [
@@ -504,7 +523,7 @@ new aws.iam.RolePolicy("joachim-ci-gc-policy", {
                         Sid: "DlqWrite",
                         Effect: "Allow",
                         Action: ["sqs:SendMessage"],
-                        Resource: gcDlq.arn,
+                        Resource: dlqArn,
                     },
                 ],
             }),

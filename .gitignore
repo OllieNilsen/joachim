@@ -18,5 +18,12 @@ Cargo.lock
 .env
 .env.*
 
+# Node
+**/node_modules/
+
+# Pulumi
+**/Pulumi.*.yaml
+!**/Pulumi.yaml
+
 # Proptest regressions (committed selectively)
 **/proptest-regressions/

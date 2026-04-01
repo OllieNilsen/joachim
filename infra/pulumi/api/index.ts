@@ -8,7 +8,25 @@ import * as command from "@pulumi/command";
 
 const projectTags = { Project: "joachim" };
 
+// Resource types that do NOT support tags — skip them in the transformation.
+const untaggableTypes = new Set([
+    "aws:iam/rolePolicyAttachment:RolePolicyAttachment",
+    "aws:iam/rolePolicy:RolePolicy",
+    "aws:iam/instanceProfile:InstanceProfile",
+    "aws:lambda/permission:Permission",
+    "aws:cloudwatch/eventTarget:EventTarget",
+    "aws:s3/bucketLifecycleConfigurationV2:BucketLifecycleConfigurationV2",
+    "aws:apigatewayv2/integration:Integration",
+    "aws:apigatewayv2/route:Route",
+    "aws:apigatewayv2/stage:Stage",
+    "aws:secretsmanager/secretVersion:SecretVersion",
+    "aws:cloudwatch/logGroup:LogGroup",
+]);
+
 pulumi.runtime.registerStackTransformation((args) => {
+    if (untaggableTypes.has(args.type)) {
+        return { props: args.props, opts: args.opts };
+    }
     if (args.props.tags !== undefined) {
         args.props.tags = { ...args.props.tags, ...projectTags };
     } else if (args.type.startsWith("aws:")) {
