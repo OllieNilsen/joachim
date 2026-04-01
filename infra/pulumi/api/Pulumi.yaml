@@ -1,0 +1,5 @@
+name: joachim-api
+runtime: nodejs
+description: JOACHIM detection API (Lambda + API Gateway + Cognito auth)
+backend:
+  url: s3://joachim-pulumi-state

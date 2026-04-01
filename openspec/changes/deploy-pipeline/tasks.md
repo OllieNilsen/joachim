@@ -32,23 +32,23 @@
 
 ## 3. API Infra (Pulumi)
 
-- [ ] 3.1 Create `infra/pulumi/api/` with `Pulumi.yaml` (name: `joachim-api`, runtime: nodejs, backend: `s3://joachim-pulumi-state`)
-- [ ] 3.2 Create `package.json` with Pulumi dependencies
-- [ ] 3.3 Add Pulumi stack transformation for `Project: joachim` tagging
-- [ ] 3.4 Implement Cognito User Pool (`joachim-api-users`): email sign-in, no self-service signup, tagged `Project: joachim`
-- [ ] 3.5 Implement Cognito App Client (`joachim-api-client`): `ALLOW_USER_PASSWORD_AUTH` flow, no client secret, no OAuth flows
-- [ ] 3.6 Implement Lambda execution IAM role: `AWSLambdaBasicExecutionRole` + `bedrock:InvokeModel` scoped to `anthropic.claude-sonnet-4-20250514`
-- [ ] 3.7 Implement Lambda function: `provided.al2023` runtime, `arm64` architecture, 256MB memory, 60s timeout, env vars (`MODEL_ID`, `AWS_REGION`)
-- [ ] 3.8 Implement API Gateway HTTP API with `POST /detect` route → Lambda integration
-- [ ] 3.9 Implement API Gateway JWT authorizer: issuer = Cognito User Pool URL, audience = App Client ID
-- [ ] 3.10 Attach JWT authorizer to `POST /detect` route (all requests must present valid Bearer token)
-- [ ] 3.11 Set API Gateway stage default route throttle: 100 burst, 50 sustained
-- [ ] 3.12 Enable API Gateway access logging to CloudWatch Logs
-- [ ] 3.13 Implement CloudWatch alarms: Lambda errors (>0 in 5min), p99 duration (>30s)
-- [ ] 3.14 Implement smoke test user: Pulumi dynamic provider or `local.Command` to `admin-create-user` + `admin-set-user-password` in Cognito
-- [ ] 3.15 Store smoke test credentials in Secrets Manager (`joachim/smoke-test-user`)
-- [ ] 3.16 Grant deploy workflow OIDC role `secretsmanager:GetSecretValue` for `joachim/smoke-test-user`
-- [ ] 3.17 Export stack outputs: `apiUrl`, `lambdaFunctionName`, `lambdaRoleArn`, `userPoolId`, `userPoolClientId`, `smokeTestSecretArn`
+- [x] 3.1 Create `infra/pulumi/api/` with `Pulumi.yaml` (name: `joachim-api`, runtime: nodejs, backend: `s3://joachim-pulumi-state`)
+- [x] 3.2 Create `package.json` with Pulumi dependencies
+- [x] 3.3 Add Pulumi stack transformation for `Project: joachim` tagging
+- [x] 3.4 Implement Cognito User Pool (`joachim-api-users`): email sign-in, no self-service signup, tagged `Project: joachim`
+- [x] 3.5 Implement Cognito App Client (`joachim-api-client`): `ALLOW_USER_PASSWORD_AUTH` flow, no client secret, no OAuth flows
+- [x] 3.6 Implement Lambda execution IAM role: `AWSLambdaBasicExecutionRole` + `bedrock:InvokeModel` scoped to `anthropic.claude-sonnet-4-20250514`
+- [x] 3.7 Implement Lambda function: `provided.al2023` runtime, `arm64` architecture, 256MB memory, 60s timeout, env vars (`MODEL_ID`, `AWS_REGION`)
+- [x] 3.8 Implement API Gateway HTTP API with `POST /detect` route → Lambda integration
+- [x] 3.9 Implement API Gateway JWT authorizer: issuer = Cognito User Pool URL, audience = App Client ID
+- [x] 3.10 Attach JWT authorizer to `POST /detect` route (all requests must present valid Bearer token)
+- [x] 3.11 Set API Gateway stage default route throttle: 100 burst, 50 sustained
+- [x] 3.12 Enable API Gateway access logging to CloudWatch Logs
+- [x] 3.13 Implement CloudWatch alarms: Lambda errors (>0 in 5min), p99 duration (>30s)
+- [x] 3.14 Implement smoke test user: Pulumi dynamic provider or `local.Command` to `admin-create-user` + `admin-set-user-password` in Cognito
+- [x] 3.15 Store smoke test credentials in Secrets Manager (`joachim/smoke-test-user`)
+- [x] 3.16 Grant deploy workflow OIDC role `secretsmanager:GetSecretValue` for `joachim/smoke-test-user`
+- [x] 3.17 Export stack outputs: `apiUrl`, `lambdaFunctionName`, `lambdaRoleArn`, `userPoolId`, `userPoolClientId`, `smokeTestSecretArn`
 
 ## 4. Lambda Handler Crate
 
