@@ -35,6 +35,7 @@ For MVP, we use an LLM (Claude via AWS Bedrock) as the supertagger. The LLM is g
 **Choice**: The LLM returns a JSON array. The client deserializes it into intermediate `RawChunkAssignment` types (with string-based `base` and `voiding` fields), then converts to `Vec<TypeAssignment>`.
 
 **LLM output format**:
+The JSON keys MUST match the intermediate struct exactly via `#[serde(rename_all = "snake_case")]`:
 ```json
 [
   {
@@ -117,11 +118,11 @@ impl Supertagger {
 
 1. Strip leading/trailing whitespace.
 2. If the response contains markdown fences (`` ```json ... ``` `` or `` ``` ... ``` ``), extract the content between them.
-3. Find the first `[` and last `]` to locate the JSON array bounds.
+3. If still not valid JSON, find the outermost matching `[` and `]` to locate the array bounds, ignoring preamble text like "Here is the JSON: [ ]".
 
 **Rationale**:
 - Claude frequently wraps JSON output with preamble text ("Here is the analysis:") or markdown fences, even when instructed not to. Handling this defensively avoids brittle failures.
-- Searching for `[` / `]` bounds is a simple heuristic that handles most wrapper patterns.
+- Searching for `[` / `]` bounds is a robust heuristic that also recovers if the LLM wraps the array in a spurious object (e.g., `{"assignments": [...]}`).
 
 ### Decision 6: Output Validation
 
@@ -160,13 +161,19 @@ pub enum SupertaggerError {
     #[error("LLM output failed validation: {reason}")]
     InvalidOutput { reason: String, raw: String },
 
+    #[error("Input text exceeds maximum length of {limit} chars (got {actual})")]
+    InputTooLong { limit: usize, actual: usize },
+
     #[error("Request timed out after {0:?}")]
     Timeout(std::time::Duration),
 }
 ```
 
+**Validation before sending**: If the input text exceeds `MAX_INPUT_LEN` (10,000 characters), the client returns `InputTooLong` immediately. This prevents token-exhaustion attacks where adversaries pad the input to push the system prompt out of the model's attention window.
+
 **Rationale**:
 - `thiserror` for ergonomic error types with minimal boilerplate.
+- The `InputTooLong` limit acts as a defensive budget cap against denial-of-wallet and context-flushing attacks.
 - `JsonParseError` displays the response length rather than dumping the entire raw response into the error message (which could be kilobytes).
 - The `raw` field is still available for logging/debugging, just not in `Display`.
 - The `#[source]` attribute on the serde error preserves the error chain.
@@ -191,12 +198,12 @@ pub struct SupertaggerConfig {
 }
 ```
 
-Defaults: `anthropic.claude-sonnet-4-20250514`, `us-east-1`, 4096 tokens, 30s timeout, temperature 0.0.
+Defaults: `anthropic.claude-sonnet-4-20250514`, `us-east-1`, 1024 tokens, 30s timeout, temperature 0.0.
 
 **Rationale**:
 - Explicit config struct rather than environment variables for testability.
 - Temperature 0.0 for deterministic output — we want consistent type assignments.
-- 4096 tokens is generous for ~50 chunks (each ~30 tokens of JSON).
+- 1024 tokens is sufficient for ~50 chunks of JSON output while acting as a hard budget cap on runaway generation (fail-fast instead of burning tokens and timing out).
 
 ## Risks / Trade-offs
 

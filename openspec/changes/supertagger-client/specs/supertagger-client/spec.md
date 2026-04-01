@@ -34,11 +34,18 @@ Where `SupertaggerOutput` contains `assignments: Vec<TypeAssignment>` and `promp
 - **WHEN** given an empty string
 - **THEN** the method SHALL return `Ok` with an empty `Vec<TypeAssignment>` (no Bedrock call)
 
+### Requirement: Input length limit
+The client SHALL reject input text exceeding a hardcoded `MAX_INPUT_LEN` limit (e.g., 10,000 characters). This acts as a defensive budget cap against denial-of-wallet and context-flushing attacks.
+
+#### Scenario: Input too long
+- **WHEN** given input text of 15,000 characters
+- **THEN** the client SHALL return `SupertaggerError::InputTooLong` without making a network call
+
 ### Requirement: JSON extraction from LLM response
 Before deserialization, the client SHALL extract the JSON array from the raw LLM response:
 1. Strip leading/trailing whitespace.
 2. If markdown fences are present (`` ```json ... ``` `` or `` ``` ... ``` ``), extract content between them.
-3. Find the first `[` and last `]` to locate the JSON array bounds.
+3. If parsing fails, find the outermost matching `[` and `]` to locate the array bounds, ignoring preamble text like "Here is the JSON: [ ]".
 
 #### Scenario: Clean JSON response
 - **WHEN** the LLM returns `[{"chunk_idx": 0, ...}]`
@@ -50,10 +57,10 @@ Before deserialization, the client SHALL extract the JSON array from the raw LLM
 
 #### Scenario: Preamble before JSON
 - **WHEN** the LLM returns "Here is the analysis:\n[...]"
-- **THEN** extraction SHALL find the `[` and `]` bounds and parse the array
+- **THEN** extraction SHALL find the outermost `[` and `]` bounds and parse the array
 
 ### Requirement: JSON deserialization via intermediate types
-The client SHALL deserialize the extracted JSON into `Vec<RawChunkAssignment>` (with `String` fields for `base` and `voiding`), then convert to `Vec<TypeAssignment>` via a `convert_raw()` step that maps strings to enums.
+The client SHALL deserialize the extracted JSON into `Vec<RawChunkAssignment>` (with `String` fields for `base` and `voiding`), then convert to `Vec<TypeAssignment>` via a `convert_raw()` step that maps strings to enums. The intermediate structs SHALL use `#[serde(rename_all = "snake_case")]`.
 
 #### Scenario: Valid JSON parsed
 - **WHEN** the LLM returns valid JSON matching the schema
@@ -78,6 +85,8 @@ After deserialization and conversion, the client SHALL validate:
 3. All `base` values are valid `TypeId` variants (checked during conversion).
 4. `adjoint` values are in range `[-5, 5]`.
 5. At least one chunk is present (for non-empty input).
+
+**Note on chunk_idx**: Gaps are permitted (e.g., `0, 2, 3`) because the LLM might drop punctuation chunks. The core parser only uses `chunk_idx` for equality comparisons, so gaps are algebraically safe.
 
 #### Scenario: Valid output passes
 - **WHEN** the LLM returns correctly structured assignments
@@ -118,7 +127,7 @@ The client SHALL accept a `SupertaggerConfig` with model_id, region, max_tokens,
 
 #### Scenario: Default configuration
 - **WHEN** using `SupertaggerConfig::default()`
-- **THEN** model SHALL be `anthropic.claude-sonnet-4-20250514`, region `us-east-1`, max_tokens 4096, timeout 30s, temperature 0.0
+- **THEN** model SHALL be `anthropic.claude-sonnet-4-20250514`, region `us-east-1`, max_tokens 1024, timeout 30s, temperature 0.0
 
 ### Requirement: Error types
 All errors SHALL be captured in a `SupertaggerError` enum using `thiserror`. `Display` output SHALL NOT dump the entire raw LLM response — use response length or truncation instead. The raw response SHALL be available as a field for programmatic access.

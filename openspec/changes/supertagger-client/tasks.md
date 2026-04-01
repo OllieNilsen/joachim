@@ -6,14 +6,14 @@
 
 ## 2. Error Types
 
-- [ ] 2.1 Implement `SupertaggerError` enum with `thiserror`: `BedrockError(String)`, `JsonParseError { raw: String, len: usize, #[source] source: serde_json::Error }`, `InvalidOutput { reason: String, raw: String }`, `Timeout(Duration)`
+- [ ] 2.1 Implement `SupertaggerError` enum with `thiserror`: `BedrockError(String)`, `JsonParseError { raw: String, len: usize, #[source] source: serde_json::Error }`, `InvalidOutput { reason: String, raw: String }`, `Timeout(Duration)`, `InputTooLong { limit: usize, actual: usize }`
 - [ ] 2.2 Verify `JsonParseError` Display shows response length, NOT the raw content
 - [ ] 2.3 Write unit tests: each variant displays a concise human-readable message
 
 ## 3. Configuration
 
 - [ ] 3.1 Implement `SupertaggerConfig { model_id, region, max_tokens, timeout, temperature }`
-- [ ] 3.2 Implement `Default` for `SupertaggerConfig`: `anthropic.claude-sonnet-4-20250514`, `us-east-1`, 4096, 30s, 0.0
+- [ ] 3.2 Implement `Default` for `SupertaggerConfig`: `anthropic.claude-sonnet-4-20250514`, `us-east-1`, 1024, 30s, 0.0
 
 ## 4. Prompt Template
 
@@ -31,16 +31,16 @@
 
 ## 5. JSON Extraction
 
-- [ ] 5.1 Implement `extract_json(response: &str) -> Result<&str, SupertaggerError>`: strip whitespace, unwrap markdown fences, find `[`/`]` array bounds
+- [ ] 5.1 Implement `extract_json(response: &str) -> Result<&str, SupertaggerError>`: strip whitespace, unwrap markdown fences. If parsing fails, fallback to regex/find for outermost matching `[` and `]`.
 - [ ] 5.2 Write unit test: clean JSON passes through
 - [ ] 5.3 Write unit test: markdown-fenced JSON is unwrapped
-- [ ] 5.4 Write unit test: preamble before JSON is stripped
+- [ ] 5.4 Write unit test: preamble before JSON is stripped via bounds heuristic
 - [ ] 5.5 Write unit test: no `[` found returns `JsonParseError`
 
 ## 6. Intermediate Types and Parsing
 
-- [ ] 6.1 Define `RawChunkAssignment { chunk_idx: u16, chunk_text: String, type_expr: Vec<RawSimpleType>, voiding: Option<String> }` with serde derives
-- [ ] 6.2 Define `RawSimpleType { base: String, adjoint: i8 }` with serde derives
+- [ ] 6.1 Define `RawChunkAssignment { chunk_idx: u16, chunk_text: String, type_expr: Vec<RawSimpleType>, voiding: Option<String> }` with `#[serde(rename_all = "snake_case")]`
+- [ ] 6.2 Define `RawSimpleType { base: String, adjoint: i8 }` with `#[serde(rename_all = "snake_case")]`
 - [ ] 6.3 Implement `parse_response(json: &str) -> Result<Vec<RawChunkAssignment>, SupertaggerError>`: deserialize JSON via `extract_json` first, return `JsonParseError` on failure
 - [ ] 6.4 Implement `convert_raw(raw: Vec<RawChunkAssignment>) -> Result<Vec<TypeAssignment>, SupertaggerError>`: convert `base` strings to `TypeId`, `voiding` strings to `VoidingKind`, strip `chunk_text`
 - [ ] 6.5 Write unit test: valid JSON round-trips correctly
@@ -68,9 +68,11 @@
 ## 9. Top-Level API
 
 - [ ] 9.1 Define `SupertaggerOutput { assignments: Vec<TypeAssignment>, prompt_version: &'static str }`
-- [ ] 9.2 Implement `Supertagger::supertag(&self, text: &str) -> Result<SupertaggerOutput, SupertaggerError>`: empty text → Ok(empty), else build prompt → invoke → extract JSON → parse → validate → return
-- [ ] 9.3 Write integration-style test with canned JSON: full pipeline from text to `SupertaggerOutput`
-- [ ] 9.4 Write test: empty text returns empty assignments without calling Bedrock
+- [ ] 9.2 Define `const MAX_INPUT_LEN: usize = 10_000` limit
+- [ ] 9.3 Implement `Supertagger::supertag(&self, text: &str) -> Result<SupertaggerOutput, SupertaggerError>`: empty text → Ok(empty), text > max len → `InputTooLong`, else build prompt → invoke → extract JSON → parse → validate → return
+- [ ] 9.4 Write integration-style test with canned JSON: full pipeline from text to `SupertaggerOutput`
+- [ ] 9.5 Write test: empty text returns empty assignments without calling Bedrock
+- [ ] 9.6 Write test: input exceeding 10,000 chars returns `InputTooLong` without calling Bedrock
 
 ## 10. Canned Response Tests
 
