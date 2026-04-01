@@ -66,21 +66,21 @@
 
 ## 5. Deploy API Workflow
 
-- [ ] 5.1 Create `.github/workflows/deploy-api.yml`: on push to main when `infra/pulumi/api/**` or `crates/joachim-lambda/**` changes
-- [ ] 5.2 Add step: install Rust toolchain + `aarch64-unknown-linux-musl` target + `pip install cargo-zigbuild`
-- [ ] 5.3 Add step: cross-compile Lambda binary (`cargo zigbuild --release --target aarch64-unknown-linux-musl -p joachim-lambda`)
-- [ ] 5.4 Add step: package binary as `bootstrap` in zip for Lambda `provided.al2023`
-- [ ] 5.5 Add step: OIDC auth + `pulumi up` for the api stack
-- [ ] 5.6 Add step: read smoke test credentials from Secrets Manager (`joachim/smoke-test-user`)
-- [ ] 5.7 Add step: acquire Cognito token via `aws cognito-idp initiate-auth` using smoke test credentials
-- [ ] 5.8 Add step: authenticated smoke test — `curl -H "Authorization: Bearer $TOKEN" -X POST $API_URL/detect -d '{"text":"test"}'` and assert 200
-- [ ] 5.9 Add step: unauthenticated smoke test — `curl -X POST $API_URL/detect -d '{"text":"test"}'` and assert 401
+- [x] 5.1 Create `.github/workflows/deploy-api.yml`: on push to main when `infra/pulumi/api/**` or `crates/joachim-lambda/**` changes
+- [x] 5.2 Add step: install Rust toolchain + `aarch64-unknown-linux-musl` target + `pip install cargo-zigbuild`
+- [x] 5.3 Add step: cross-compile Lambda binary (`cargo zigbuild --release --target aarch64-unknown-linux-musl -p joachim-lambda`)
+- [x] 5.4 Add step: package binary as `bootstrap` in zip for Lambda `provided.al2023`
+- [x] 5.5 Add step: OIDC auth + `pulumi up` for the api stack
+- [x] 5.6 Add step: read smoke test credentials from Secrets Manager (`joachim/smoke-test-user`)
+- [x] 5.7 Add step: acquire Cognito token via `aws cognito-idp initiate-auth` using smoke test credentials
+- [x] 5.8 Add step: authenticated smoke test — `curl -H "Authorization: Bearer $TOKEN" -X POST $API_URL/detect -d '{"text":"test"}'` and assert 200
+- [x] 5.9 Add step: unauthenticated smoke test — `curl -X POST $API_URL/detect -d '{"text":"test"}'` and assert 401
 
 ## 6. Documentation
 
-- [ ] 6.1 Add README to `infra/pulumi/ci-runner/` explaining the stack
-- [ ] 6.2 Add README to `infra/pulumi/api/` explaining the stack
-- [ ] 6.3 Add README to `crates/joachim-lambda/` with usage and local testing instructions
-- [ ] 6.4 Update ROADMAP.md to reflect deploy-pipeline completion
-- [ ] 6.5 Document cost tracking: how to use AWS Cost Explorer with `Project: joachim` tag
-- [ ] 6.6 Document authentication: how to create a Cognito user, acquire a token via `InitiateAuth`, and call the API
+- [x] 6.1 Add README to `infra/pulumi/ci-runner/` explaining the stack
+- [x] 6.2 Add README to `infra/pulumi/api/` explaining the stack
+- [x] 6.3 Add README to `crates/joachim-lambda/` with usage and local testing instructions
+- [x] 6.4 Update ROADMAP.md to reflect deploy-pipeline completion
+- [x] 6.5 Document cost tracking: how to use AWS Cost Explorer with `Project: joachim` tag
+- [x] 6.6 Document authentication: how to create a Cognito user, acquire a token via `InitiateAuth`, and call the API
