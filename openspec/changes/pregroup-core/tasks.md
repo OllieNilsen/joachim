@@ -73,94 +73,94 @@
 
 ## 7. Parser
 
-- [ ] 7.1 Define `ParseInput(pub Vec<TypeAssignment>)`
-- [ ] 7.2 Implement `validate(input: &ParseInput) -> bool`: check chunk_idx monotonically non-decreasing, no empty TypeExprs
-- [ ] 7.3 Implement `flatten(input: &ParseInput) -> (Vec<SimpleType>, Vec<u16>)`: expand into flat SimpleType sequence with parallel chunk index vec
-- [ ] 7.4 Implement conjunction barrier detection: scan flattened sequence for positions where `base == TypeId::Conj`; return segment boundaries as `Vec<(usize, usize)>` excluding conj positions. Non-conj positions from multi-element conj chunks join the adjacent segment.
-- [ ] 7.5 Implement Nussinov DP (Pass 1): for each segment, fill segment-local `dp[i][j]` table using recurrence; store backpointers
-- [ ] 7.6 Implement linkage extraction: walk backpointers from `dp[0][seg_len-1]` for each segment; translate segment-local indices to global positions by adding segment offset; produce `Vec<LinkageEdge>`
-- [ ] 7.7 Implement injection-relevance check: given extracted edges and chunk index map, determine if any edge is injection-relevant (one endpoint base is `Ag`, other shares chunk with `Dir`/`Role`)
-- [ ] 7.8 Implement Nussinov DP (Pass 2): same recurrence but with bonus scoring `+n` for injection-relevant edges; only runs if Pass 1 found zero injection-relevant edges
-- [ ] 7.9 Implement `parse(input: &ParseInput, timeout: Option<Duration>) -> LinkageGraph`: validate → flatten → segments → Pass 1 → check → optional Pass 2 → assemble LinkageGraph. Return empty graph on validation failure.
-- [ ] 7.10 Add timeout checking: periodically check elapsed time during DP inner loop; set `timed_out` flag on early exit
-- [ ] 7.11 Implement `Arbitrary` for `ParseInput` (proptest): generate 1..=10 TypeAssignments with monotonically increasing chunk_idx (0, 1, 2, ...), non-empty random TypeExprs, random voiding
-- [ ] 7.12 Write unit test: `[ag^l, ag]` produces 1 edge `(0, 1)`
-- [ ] 7.13 Write unit test: `[dir, ag^l, ag]` — edge `(1, 2)`, position 0 unlinked
-- [ ] 7.14 Write unit test: `[dir, usr, n]` — 0 edges
-- [ ] 7.15 Write unit test: `[a^l, b^l, b, a]` — nested planar edges `(0, 3)` and `(1, 2)`
-- [ ] 7.16 Write unit test: empty input returns empty graph
-- [ ] 7.17 Write unit test: conjunction barrier — `[ag^l, conj, ag]` produces 0 edges
-- [ ] 7.18 Write unit test: conjunction segments — `[ag^l, ag, conj, usr^l, usr]` produces edges `(0,1)` and `(3,4)`
-- [ ] 7.19 Write unit test: intra-chunk self-contraction — `[dir, ag^l, ag]` from single chunk produces edge `(1,2)`
-- [ ] 7.20 Write unit test: security Pass 2 — ambiguous parse where max-contraction linkage hides injection but Pass 2 surfaces it → Injection
-- [ ] 7.21 Write unit test: Pass 2 fallback — when no injection-relevant edges exist in any linkage, Pass 2 returns same result as Pass 1 (identical edge count and edges)
-- [ ] 7.22 Write unit test: multi-element conj chunk — `[ag^l, ag, conj, n^r, usr^l, usr]` where `conj · n^r` is one chunk; position 2 excluded, positions 3-5 form segment 2
-- [ ] 7.23 Write unit test: input validation — non-monotonic chunk_idx returns empty graph
-- [ ] 7.24 Write unit test: input validation — empty TypeExpr returns empty graph
+- [x] 7.1 Define `ParseInput(pub Vec<TypeAssignment>)`
+- [x] 7.2 Implement `validate(input: &ParseInput) -> bool`: check chunk_idx monotonically non-decreasing, no empty TypeExprs
+- [x] 7.3 Implement `flatten(input: &ParseInput) -> (Vec<SimpleType>, Vec<u16>)`: expand into flat SimpleType sequence with parallel chunk index vec
+- [x] 7.4 Implement conjunction barrier detection: scan flattened sequence for positions where `base == TypeId::Conj`; return segment boundaries as `Vec<(usize, usize)>` excluding conj positions. Non-conj positions from multi-element conj chunks join the adjacent segment.
+- [x] 7.5 Implement Nussinov DP (Pass 1): for each segment, fill segment-local `dp[i][j]` table using recurrence; store backpointers
+- [x] 7.6 Implement linkage extraction: walk backpointers from `dp[0][seg_len-1]` for each segment; translate segment-local indices to global positions by adding segment offset; produce `Vec<LinkageEdge>`
+- [x] 7.7 Implement injection-relevance check: given extracted edges and chunk index map, determine if any edge is injection-relevant (one endpoint base is `Ag`, other shares chunk with `Dir`/`Role`)
+- [x] 7.8 Implement Nussinov DP (Pass 2): same recurrence but with bonus scoring `+n` for injection-relevant edges; only runs if Pass 1 found zero injection-relevant edges
+- [x] 7.9 Implement `parse(input: &ParseInput, timeout: Option<Duration>) -> LinkageGraph`: validate → flatten → segments → Pass 1 → check → optional Pass 2 → assemble LinkageGraph. Return empty graph on validation failure.
+- [x] 7.10 Add timeout checking: periodically check elapsed time during DP inner loop; set `timed_out` flag on early exit
+- [x] 7.11 Implement `Arbitrary` for `ParseInput` (proptest): generate 1..=10 TypeAssignments with monotonically increasing chunk_idx (0, 1, 2, ...), non-empty random TypeExprs, random voiding
+- [x] 7.12 Write unit test: `[ag^l, ag]` produces 1 edge `(0, 1)`
+- [x] 7.13 Write unit test: `[dir, ag^l, ag]` — edge `(1, 2)`, position 0 unlinked
+- [x] 7.14 Write unit test: `[dir, usr, n]` — 0 edges
+- [x] 7.15 Write unit test: `[a^l, b^l, b, a]` — nested planar edges `(0, 3)` and `(1, 2)`
+- [x] 7.16 Write unit test: empty input returns empty graph
+- [x] 7.17 Write unit test: conjunction barrier — `[ag^l, conj, ag]` produces 0 edges
+- [x] 7.18 Write unit test: conjunction segments — `[ag^l, ag, conj, usr^l, usr]` produces edges `(0,1)` and `(3,4)`
+- [x] 7.19 Write unit test: intra-chunk self-contraction — `[dir, ag^l, ag]` from single chunk produces edge `(1,2)`
+- [x] 7.20 Write unit test: security Pass 2 — ambiguous parse where max-contraction linkage hides injection but Pass 2 surfaces it → Injection
+- [x] 7.21 Write unit test: Pass 2 fallback — when no injection-relevant edges exist in any linkage, Pass 2 returns same result as Pass 1 (identical edge count and edges)
+- [x] 7.22 Write unit test: multi-element conj chunk — `[ag^l, ag, conj, n^r, usr^l, usr]` where `conj · n^r` is one chunk; position 2 excluded, positions 3-5 form segment 2
+- [x] 7.23 Write unit test: input validation — non-monotonic chunk_idx returns empty graph
+- [x] 7.24 Write unit test: input validation — empty TypeExpr returns empty graph
 
 ## 8. Parser Property Tests
 
-- [ ] 8.1 Property: Parse determinism — same input always produces same LinkageGraph
-- [ ] 8.2 Property: Termination — parsing any randomly generated ParseInput terminates
-- [ ] 8.3 Property: Edge validity — `can_contract(meta[e.left].simple_type, meta[e.right].simple_type)` for all edges
-- [ ] 8.4 Property: Planarity — no two edges cross
-- [ ] 8.5 Property: Edge count bound — edges.len() <= floor(n / 2)
-- [ ] 8.6 Property: Adjoint pairs always contract — `[a^l, a]` always produces exactly 1 edge
-- [ ] 8.7 Property: No contractions for identical primitives — `[a, a, a]` for any primitive `a` produces 0 edges
-- [ ] 8.8 Property: Conjunction barrier — no edge crosses a `conj` position
-- [ ] 8.9 Property: Nested pairs — `[a^l, b^l, b, a]` always produces 2 edges
-- [ ] 8.10 Property: All edges use global positions — for each edge, `left < meta.len()` and `right < meta.len()`
+- [x] 8.1 Property: Parse determinism — same input always produces same LinkageGraph
+- [x] 8.2 Property: Termination — parsing any randomly generated ParseInput terminates
+- [x] 8.3 Property: Edge validity — `can_contract(meta[e.left].simple_type, meta[e.right].simple_type)` for all edges
+- [x] 8.4 Property: Planarity — no two edges cross
+- [x] 8.5 Property: Edge count bound — edges.len() <= floor(n / 2)
+- [x] 8.6 Property: Adjoint pairs always contract — `[a^l, a]` always produces exactly 1 edge
+- [x] 8.7 Property: No contractions for identical primitives — `[a, a, a]` for any primitive `a` produces 0 edges
+- [x] 8.8 Property: Conjunction barrier — no edge crosses a `conj` position
+- [x] 8.9 Property: Nested pairs — `[a^l, b^l, b, a]` always produces 2 edges
+- [x] 8.10 Property: All edges use global positions — for each edge, `left < meta.len()` and `right < meta.len()`
 
 ## 9. Scope Checker
 
-- [ ] 9.1 Define `ScopePattern` enum: `DirOverAg`, `RoleOverAg`; derive `Copy, Clone, PartialEq, Eq, Debug`
-- [ ] 9.2 Define `ScopeViolation { pattern: ScopePattern, source_pos: u16, target_pos: u16 }` with vector index references
-- [ ] 9.3 Define `#[non_exhaustive] Verdict` enum: `Injection { violations: Vec<ScopeViolation> }`, `Clean`
-- [ ] 9.4 Define `EdgeKind` enum: `Contraction`, `Adjacency` — used to tag adjacency list entries
-- [ ] 9.5 Implement `build_adjacency(graph: &LinkageGraph) -> Vec<SmallVec<[(u16, EdgeKind); 4]>>`: build bidirectional adjacency list from contraction edges (tagged `Contraction`) + positionally-adjacent same-chunk pairs (tagged `Adjacency`): `|i - j| == 1 && meta[i].chunk_idx == meta[j].chunk_idx`
-- [ ] 9.6 Implement `compute_voided_chunks(graph: &LinkageGraph, assignments: &[TypeAssignment]) -> HashSet<u16>`: BFS over chunks — seed with voiding-annotated chunks, expand via contraction edges to non-voided chunks, repeat until fixpoint
-- [ ] 9.7 Implement `find_scope_paths(graph: &LinkageGraph, adjacency: &[SmallVec<[(u16, EdgeKind); 4]>]) -> Vec<(u16, u16, ScopePattern)>`: two-state BFS from each `Dir`/`Role` position with state `(pos, has_contracted: bool)`; traverse adjacency edges flipping `has_contracted = true` on `Contraction` edges; report `Ag` positions only when `has_contracted == true`
-- [ ] 9.8 Implement `check_scope(graph: &LinkageGraph, assignments: &[TypeAssignment]) -> Verdict`: compute voided chunks, find scope paths, filter out paths where source or target position belongs to a voided chunk, return Injection or Clean
-- [ ] 9.9 Handle edge cases: empty graph → Clean, zero-edge graph → Clean
+- [x] 9.1 Define `ScopePattern` enum: `DirOverAg`, `RoleOverAg`; derive `Copy, Clone, PartialEq, Eq, Debug`
+- [x] 9.2 Define `ScopeViolation { pattern: ScopePattern, source_pos: u16, target_pos: u16 }` with vector index references
+- [x] 9.3 Define `#[non_exhaustive] Verdict` enum: `Injection { violations: Vec<ScopeViolation> }`, `Clean`
+- [x] 9.4 Define `EdgeKind` enum: `Contraction`, `Adjacency` — used to tag adjacency list entries
+- [x] 9.5 Implement `build_adjacency(graph: &LinkageGraph) -> Vec<SmallVec<[(u16, EdgeKind); 4]>>`: build bidirectional adjacency list from contraction edges (tagged `Contraction`) + positionally-adjacent same-chunk pairs (tagged `Adjacency`): `|i - j| == 1 && meta[i].chunk_idx == meta[j].chunk_idx`
+- [x] 9.6 Implement `compute_voided_chunks(graph: &LinkageGraph, assignments: &[TypeAssignment]) -> HashSet<u16>`: BFS over chunks — seed with voiding-annotated chunks, expand via contraction edges to non-voided chunks, repeat until fixpoint
+- [x] 9.7 Implement `find_scope_paths(graph: &LinkageGraph, adjacency: &[SmallVec<[(u16, EdgeKind); 4]>]) -> Vec<(u16, u16, ScopePattern)>`: two-state BFS from each `Dir`/`Role` position with state `(pos, has_contracted: bool)`; traverse adjacency edges flipping `has_contracted = true` on `Contraction` edges; report `Ag` positions only when `has_contracted == true`
+- [x] 9.8 Implement `check_scope(graph: &LinkageGraph, assignments: &[TypeAssignment]) -> Verdict`: compute voided chunks, find scope paths, filter out paths where source or target position belongs to a voided chunk, return Injection or Clean
+- [x] 9.9 Handle edge cases: empty graph → Clean, zero-edge graph → Clean
 
 ## 10. Scope Checker Property Tests
 
-- [ ] 10.1 Property: Verdict determinism — same graph + assignments always produces same verdict
-- [ ] 10.2 Property: Voiding transitivity — construct graph where voiding chunk links to dir→ag, verify Clean
-- [ ] 10.3 Property: Self-voiding — construct graph where meta chunk contains intra-chunk dir→ag, verify Clean
-- [ ] 10.4 Property: Dir-over-usr is always Clean
-- [ ] 10.5 Property: Unvoided dir-over-ag is always Injection
-- [ ] 10.6 Property: Non-voiding modifier does NOT void — construct graph with `dir · dir^l` (voiding=None) linking to dir→ag, verify Injection
-- [ ] 10.7 Property: Empty graph is Clean
-- [ ] 10.8 Property: Positional adjacency — scope path only uses `|i-j|==1` same-chunk steps
-- [ ] 10.9 Property: Contraction step required — `dir · ag` in a single chunk with no contraction edges produces Clean (two-state BFS never sets has_contracted)
+- [x] 10.1 Property: Verdict determinism — same graph + assignments always produces same verdict
+- [x] 10.2 Property: Voiding transitivity — construct graph where voiding chunk links to dir→ag, verify Clean
+- [x] 10.3 Property: Self-voiding — construct graph where meta chunk contains intra-chunk dir→ag, verify Clean
+- [x] 10.4 Property: Dir-over-usr is always Clean
+- [x] 10.5 Property: Unvoided dir-over-ag is always Injection
+- [x] 10.6 Property: Non-voiding modifier does NOT void — construct graph with `dir · dir^l` (voiding=None) linking to dir→ag, verify Injection
+- [x] 10.7 Property: Empty graph is Clean
+- [x] 10.8 Property: Positional adjacency — scope path only uses `|i-j|==1` same-chunk steps
+- [x] 10.9 Property: Contraction step required — `dir · ag` in a single chunk with no contraction edges produces Clean (two-state BFS never sets has_contracted)
 
 ## 11. Integration Tests
 
-- [ ] 11.1 Create `test_fixtures.rs` module: encode all type annotations from `type_annotations_v0.md` as Rust constants (`Vec<TypeAssignment>` + expected `Verdict` for each example). Single source of truth.
-- [ ] 11.2 Create test helper: `fn assert_verdict(assignments: &[TypeAssignment], expected: Verdict)` — parse and check, assert verdict matches
-- [ ] 11.3 Test inj_001 (direct override): `[(0, dir · ag^l · ag, None)]` → Injection
-- [ ] 11.4 Test inj_002 (stop + ignore): `[(0, dir, None), (1, dir · ag^l · ag, None), (2, dir · usr^l · usr, None)]` → Injection
-- [ ] 11.5 Test inj_004 (role hijack): `[(0, role · ag^l · ag, None), (1, qst · usr^l, None)]` → Injection
-- [ ] 11.6 Test inj_013 (threat): `[(0, dir · ag^l · ag, None), (1, conj, None), (2, ass, None)]` → Injection
-- [ ] 11.7 Test ben_007 (meta discussion): `[(0, n · n^l, Some(Meta)), (1, n · qst · usr^l, None)]` → Clean
-- [ ] 11.8 Test ben_009 (hypothetical): `[(0, s · s^l, Some(Hypothetical)), (1, s · dir · ag^l · ag, None), (2, qst · usr^l, None)]` → Clean
-- [ ] 11.9 Test ben_011 (quoted content): `[(0, ass, None), (1, n^r · n, None), (2, n · dir · ag^l · ag, Some(Meta)), (3, n^r · n, None)]` → Clean
-- [ ] 11.10 Test ben_015 (user-domain directive): `[(0, dir · usr^l, None), (1, usr, None)]` → Clean
-- [ ] 11.11 Test ben_018 (negated directive): `[(0, dir · dir^l, Some(Negation)), (1, dir · ag^l · ag, None), (2, dir · usr^l, None), (3, usr, None)]` → Clean
-- [ ] 11.12 Test security: ambiguous parse where Pass 1 hides injection, Pass 2 surfaces it → Injection
-- [ ] 11.13 Test all fixtures from `test_fixtures.rs` via `#[test_case]` or loop
+- [x] 11.1 Create `test_fixtures.rs` module: encode all type annotations from `type_annotations_v0.md` as Rust constants (`Vec<TypeAssignment>` + expected `Verdict` for each example). Single source of truth.
+- [x] 11.2 Create test helper: `fn assert_verdict(assignments: &[TypeAssignment], expected: Verdict)` — parse and check, assert verdict matches
+- [x] 11.3 Test inj_001 (direct override): `[(0, dir · ag^l · ag, None)]` → Injection
+- [x] 11.4 Test inj_002 (stop + ignore): `[(0, dir, None), (1, dir · ag^l · ag, None), (2, dir · usr^l · usr, None)]` → Injection
+- [x] 11.5 Test inj_004 (role hijack): `[(0, role · ag^l · ag, None), (1, qst · usr^l, None)]` → Injection
+- [x] 11.6 Test inj_013 (threat): `[(0, dir · ag^l · ag, None), (1, conj, None), (2, ass, None)]` → Injection
+- [x] 11.7 Test ben_007 (meta discussion): `[(0, n · n^l, Some(Meta)), (1, n · qst · usr^l, None)]` → Clean
+- [x] 11.8 Test ben_009 (hypothetical): `[(0, s · s^l, Some(Hypothetical)), (1, s · dir · ag^l · ag, None), (2, qst · usr^l, None)]` → Clean
+- [x] 11.9 Test ben_011 (quoted content): `[(0, ass, None), (1, n^r · n, None), (2, n · dir · ag^l · ag, Some(Meta)), (3, n^r · n, None)]` → Clean
+- [x] 11.10 Test ben_015 (user-domain directive): `[(0, dir · usr^l, None), (1, usr, None)]` → Clean
+- [x] 11.11 Test ben_018 (negated directive): `[(0, dir · dir^l, Some(Negation)), (1, dir · ag^l · ag, None), (2, dir · usr^l, None), (3, usr, None)]` → Clean
+- [x] 11.12 Test security: ambiguous parse where Pass 1 hides injection, Pass 2 surfaces it → Injection
+- [x] 11.13 Test all fixtures from `test_fixtures.rs` via `#[test_case]` or loop
 
 ## 12. Documentation
 
-- [ ] 12.1 Add rustdoc comments to all public types and functions
-- [ ] 12.2 Add module-level docs: explain pregroup grammar, i8 adjoint representation, contraction formula (with checked_sub), Nussinov algorithm
-- [ ] 12.3 Document VoidingKind and the separation of algebraic structure from semantic voiding
-- [ ] 12.4 Document conjunction barrier behavior including multi-element conj chunk handling
-- [ ] 12.5 Document intra-chunk self-contraction convention
-- [ ] 12.6 Document voiding propagation: self-voiding + chunk-granular BFS
-- [ ] 12.7 Document scope path adjacency constraint and two-state BFS
-- [ ] 12.8 Document i8 overflow panic behavior (left_adj/right_adj) vs never-panic (can_contract)
-- [ ] 12.9 Document input validation rules and behavior on invalid input
-- [ ] 12.10 Add doc examples showing: construct types, parse a sequence, check scope
-- [ ] 12.11 Add crate-level README with overview, examples, and link to ROADMAP.md
+- [x] 12.1 Add rustdoc comments to all public types and functions
+- [x] 12.2 Add module-level docs: explain pregroup grammar, i8 adjoint representation, contraction formula (with checked_sub), Nussinov algorithm
+- [x] 12.3 Document VoidingKind and the separation of algebraic structure from semantic voiding
+- [x] 12.4 Document conjunction barrier behavior including multi-element conj chunk handling
+- [x] 12.5 Document intra-chunk self-contraction convention
+- [x] 12.6 Document voiding propagation: self-voiding + chunk-granular BFS
+- [x] 12.7 Document scope path adjacency constraint and two-state BFS
+- [x] 12.8 Document i8 overflow panic behavior (left_adj/right_adj) vs never-panic (can_contract)
+- [x] 12.9 Document input validation rules and behavior on invalid input
+- [x] 12.10 Add doc examples showing: construct types, parse a sequence, check scope
+- [x] 12.11 Add crate-level README with overview, examples, and link to ROADMAP.md
