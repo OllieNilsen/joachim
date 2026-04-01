@@ -1,0 +1,35 @@
+name: Stop ephemeral EC2 runner
+
+on:
+  workflow_call:
+    inputs:
+      label:
+        description: "Runner label from start-runner"
+        required: true
+        type: string
+      ec2-instance-id:
+        description: "EC2 instance ID from start-runner"
+        required: true
+        type: string
+
+jobs:
+  stop:
+    runs-on: ubuntu-latest
+    if: always()
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN_CI_RUNNER }}
+          aws-region: us-east-1
+
+      - name: Stop EC2 runner
+        uses: machulav/ec2-github-runner@v2
+        with:
+          mode: stop
+          github-token: ${{ secrets.GH_RUNNER_PAT }}
+          label: ${{ inputs.label }}
+          ec2-instance-id: ${{ inputs.ec2-instance-id }}

@@ -1,0 +1,105 @@
+name: Start ephemeral EC2 runner
+
+on:
+  workflow_call:
+    outputs:
+      label:
+        description: "Runner label for runs-on"
+        value: ${{ jobs.start.outputs.label }}
+      ec2-instance-id:
+        description: "EC2 instance ID for teardown"
+        value: ${{ jobs.start.outputs.ec2-instance-id }}
+
+jobs:
+  start:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      label: ${{ steps.start-runner.outputs.label }}
+      ec2-instance-id: ${{ steps.start-runner.outputs.ec2-instance-id }}
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN_CI_RUNNER }}
+          aws-region: us-east-1
+
+      - name: Start EC2 runner (spot)
+        id: start-runner-spot
+        continue-on-error: true
+        uses: machulav/ec2-github-runner@v2
+        with:
+          mode: start
+          github-token: ${{ secrets.GH_RUNNER_PAT }}
+          ec2-image-id: ${{ vars.CI_RUNNER_AMI_ID }}
+          ec2-instance-type: ${{ vars.CI_RUNNER_INSTANCE_TYPE }}
+          subnet-id: ${{ vars.CI_RUNNER_SUBNET_ID }}
+          security-group-id: ${{ vars.CI_RUNNER_SECURITY_GROUP_ID }}
+          iam-role-name: ${{ vars.CI_RUNNER_INSTANCE_PROFILE }}
+          market-type: spot
+          aws-resource-tags: >
+            [{"Key":"Name","Value":"joachim-ci-spot"},
+             {"Key":"Repo","Value":"${{ github.repository }}"},
+             {"Key":"RunId","Value":"${{ github.run_id }}"},
+             {"Key":"ManagedBy","Value":"github-actions-ci"},
+             {"Key":"Project","Value":"joachim"}]
+
+      - name: Backoff before spot retry
+        if: steps.start-runner-spot.outcome == 'failure'
+        run: sleep 20
+
+      - name: Start EC2 runner (spot retry)
+        id: start-runner-spot-retry
+        if: steps.start-runner-spot.outcome == 'failure'
+        continue-on-error: true
+        uses: machulav/ec2-github-runner@v2
+        with:
+          mode: start
+          github-token: ${{ secrets.GH_RUNNER_PAT }}
+          ec2-image-id: ${{ vars.CI_RUNNER_AMI_ID }}
+          ec2-instance-type: ${{ vars.CI_RUNNER_INSTANCE_TYPE }}
+          subnet-id: ${{ vars.CI_RUNNER_SUBNET_ID }}
+          security-group-id: ${{ vars.CI_RUNNER_SECURITY_GROUP_ID }}
+          iam-role-name: ${{ vars.CI_RUNNER_INSTANCE_PROFILE }}
+          market-type: spot
+          aws-resource-tags: >
+            [{"Key":"Name","Value":"joachim-ci-spot-retry"},
+             {"Key":"Repo","Value":"${{ github.repository }}"},
+             {"Key":"RunId","Value":"${{ github.run_id }}"},
+             {"Key":"ManagedBy","Value":"github-actions-ci"},
+             {"Key":"Project","Value":"joachim"}]
+
+      - name: Start EC2 runner (on-demand fallback)
+        id: start-runner-od
+        if: steps.start-runner-spot.outcome == 'failure' && steps.start-runner-spot-retry.outcome == 'failure'
+        uses: machulav/ec2-github-runner@v2
+        with:
+          mode: start
+          github-token: ${{ secrets.GH_RUNNER_PAT }}
+          ec2-image-id: ${{ vars.CI_RUNNER_AMI_ID }}
+          ec2-instance-type: ${{ vars.CI_RUNNER_INSTANCE_TYPE }}
+          subnet-id: ${{ vars.CI_RUNNER_SUBNET_ID }}
+          security-group-id: ${{ vars.CI_RUNNER_SECURITY_GROUP_ID }}
+          iam-role-name: ${{ vars.CI_RUNNER_INSTANCE_PROFILE }}
+          aws-resource-tags: >
+            [{"Key":"Name","Value":"joachim-ci-od"},
+             {"Key":"Repo","Value":"${{ github.repository }}"},
+             {"Key":"RunId","Value":"${{ github.run_id }}"},
+             {"Key":"ManagedBy","Value":"github-actions-ci"},
+             {"Key":"Project","Value":"joachim"}]
+
+      - name: Set runner outputs
+        id: start-runner
+        run: |
+          if [ "${{ steps.start-runner-spot.outcome }}" = "success" ]; then
+            echo "label=${{ steps.start-runner-spot.outputs.label }}" >> "$GITHUB_OUTPUT"
+            echo "ec2-instance-id=${{ steps.start-runner-spot.outputs.ec2-instance-id }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ steps.start-runner-spot-retry.outcome }}" = "success" ]; then
+            echo "label=${{ steps.start-runner-spot-retry.outputs.label }}" >> "$GITHUB_OUTPUT"
+            echo "ec2-instance-id=${{ steps.start-runner-spot-retry.outputs.ec2-instance-id }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "label=${{ steps.start-runner-od.outputs.label }}" >> "$GITHUB_OUTPUT"
+            echo "ec2-instance-id=${{ steps.start-runner-od.outputs.ec2-instance-id }}" >> "$GITHUB_OUTPUT"
+          fi

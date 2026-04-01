@@ -15,11 +15,70 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  rust-ci:
+  # --- Static checks (free GH runner) ---
+  static-checks:
     uses: ./.github/workflows/reusable-rust-ci.yml
     with:
       manifest-path: Cargo.toml
-      use-ec2-runner: true
-      ec2-runner-label: ec2-rust
-      sccache-s3-bucket: ${{ vars.SCCACHE_S3_BUCKET }}
-      aws-region: us-east-1
+
+  # --- Start EC2 runner ---
+  start-runner:
+    uses: ./.github/workflows/reusable-start-runner.yml
+    secrets: inherit
+
+  # --- Compile and test on EC2 ---
+  compile-and-test:
+    needs: [static-checks, start-runner]
+    runs-on: ${{ needs.start-runner.outputs.label && fromJson(format('[\"self-hosted\", \"linux\", \"x64\", \"{0}\"]', needs.start-runner.outputs.label)) || 'ubuntu-latest' }}
+    timeout-minutes: 45
+    env:
+      SCCACHE_BUCKET: ${{ vars.SCCACHE_S3_BUCKET }}
+      SCCACHE_REGION: us-east-1
+      SCCACHE_S3_USE_SSL: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install base build tools
+        run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config libssl-dev cmake
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Install sccache
+        run: |
+          if ! command -v sccache >/dev/null 2>&1; then
+            SCCACHE_VERSION="v0.9.1"
+            curl -fsSL "https://github.com/mozilla/sccache/releases/download/${SCCACHE_VERSION}/sccache-${SCCACHE_VERSION}-x86_64-unknown-linux-musl.tar.gz" | tar xz
+            sudo mv sccache-*/sccache /usr/local/bin/
+            rm -rf sccache-*
+          fi
+
+      - name: Configure sccache
+        if: vars.SCCACHE_S3_BUCKET != ''
+        run: |
+          echo "RUSTC_WRAPPER=$(command -v sccache)" >> "$GITHUB_ENV"
+          echo "SCCACHE_IDLE_TIMEOUT=0" >> "$GITHUB_ENV"
+          sccache --start-server || true
+
+      - name: Clippy lint
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      - name: Run tests
+        run: cargo test --workspace
+
+      - name: sccache stats
+        if: always() && vars.SCCACHE_S3_BUCKET != ''
+        run: sccache --show-stats || true
+
+  # --- Stop EC2 runner ---
+  stop-runner:
+    if: always() && needs.start-runner.result == 'success'
+    needs: [start-runner, compile-and-test]
+    uses: ./.github/workflows/reusable-stop-runner.yml
+    with:
+      label: ${{ needs.start-runner.outputs.label }}
+      ec2-instance-id: ${{ needs.start-runner.outputs.ec2-instance-id }}
+    secrets: inherit
