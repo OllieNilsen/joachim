@@ -1,0 +1,53 @@
+name: Deploy CI Runner Infra
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "infra/pulumi/ci-runner/**"
+      - ".github/workflows/deploy-ci-runner.yml"
+
+permissions:
+  id-token: write
+  contents: read
+  actions: write
+
+concurrency:
+  group: deploy-ci-runner-${{ github.ref }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_PULUMI_DEPLOY }}
+          aws-region: us-east-1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: infra/pulumi/ci-runner
+        run: npm ci
+
+      - name: Pulumi Up
+        uses: pulumi/actions@v5
+        with:
+          command: up
+          stack-name: prod
+          work-dir: infra/pulumi/ci-runner
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+
+      - name: Sync repo variables
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+        run: ./scripts/sync-ci-runner-vars.sh infra/pulumi/ci-runner prod

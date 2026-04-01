@@ -1,0 +1,25 @@
+name: JOACHIM CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: joachim-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust-ci:
+    uses: ./.github/workflows/reusable-rust-ci.yml
+    with:
+      manifest-path: Cargo.toml
+      use-ec2-runner: true
+      ec2-runner-label: ec2-rust
+      sccache-s3-bucket: ${{ vars.SCCACHE_S3_BUCKET }}
+      aws-region: us-east-1

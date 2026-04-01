@@ -25,10 +25,10 @@
 
 ## 2. CI Workflows (GitHub Actions)
 
-- [ ] 2.1 Create `.github/workflows/reusable-rust-ci.yml`: static-checks (fmt, audit on ubuntu-latest) + compile-and-test-ec2 (clippy, test on self-hosted EC2 with sccache)
-- [ ] 2.2 Create `.github/workflows/joachim-ci.yml`: main orchestrator — on PR and push to main, call reusable-rust-ci with `manifest-path: Cargo.toml`, `use-ec2-runner: true`
-- [ ] 2.3 Create `.github/workflows/deploy-ci-runner.yml`: on push to main when `infra/pulumi/ci-runner/**` changes, run `pulumi up` + sync vars
-- [ ] 2.4 Add concurrency groups to all workflows (cancel in-progress on new push)
+- [x] 2.1 Create `.github/workflows/reusable-rust-ci.yml`: static-checks (fmt, audit on ubuntu-latest) + compile-and-test-ec2 (clippy, test on self-hosted EC2 with sccache)
+- [x] 2.2 Create `.github/workflows/joachim-ci.yml`: main orchestrator — on PR and push to main, call reusable-rust-ci with `manifest-path: Cargo.toml`, `use-ec2-runner: true`
+- [x] 2.3 Create `.github/workflows/deploy-ci-runner.yml`: on push to main when `infra/pulumi/ci-runner/**` changes, run `pulumi up` + sync vars
+- [x] 2.4 Add concurrency groups to all workflows (cancel in-progress on new push)
 
 ## 3. API Infra (Pulumi)
 
