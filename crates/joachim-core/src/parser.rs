@@ -257,36 +257,39 @@ pub fn parse(input: &ParseInput, timeout: Option<Duration>) -> LinkageGraph {
         };
     }
 
-    // --- Pass 1: max total contractions ---
-    let mut all_edges: Vec<LinkageEdge> = Vec::new();
-    let mut timed_out = false;
+    // --- Shared helper: run DP on all segments, collect global edges ---
+    let run_all_segments = |bonus_fn: &dyn Fn(usize, usize, usize) -> usize,
+                            deadline: Option<Instant>|
+     -> (Vec<LinkageEdge>, bool) {
+        let mut edges = Vec::new();
+        let mut to = false;
+        for &(seg_start, seg_end) in &segments {
+            let seg = &types[seg_start..seg_end];
+            if seg.is_empty() {
+                continue;
+            }
+            let seg_bonus = |i: usize, k: usize| -> usize { bonus_fn(seg_start, i, k) };
+            let (_, bp, seg_to) = nussinov_dp(seg, &seg_bonus, deadline);
+            to |= seg_to;
 
-    for &(seg_start, seg_end) in &segments {
-        let seg = &types[seg_start..seg_end];
-        if seg.is_empty() {
-            continue;
-        }
-
-        let no_bonus = |_i: usize, _k: usize| -> usize { 0 };
-        let (_, bp, to) = nussinov_dp(seg, &no_bonus, deadline);
-        timed_out |= to;
-
-        let seg_len = seg.len();
-        if seg_len > 0 {
             let mut local_edges = Vec::new();
-            extract_edges(&bp, 0, seg_len - 1, &mut local_edges);
+            extract_edges(&bp, 0, seg.len() - 1, &mut local_edges);
 
-            // Translate local → global.
             for (li, lk) in local_edges {
                 let gi = (seg_start + li) as u16;
                 let gk = (seg_start + lk) as u16;
-                all_edges.push(LinkageEdge {
+                edges.push(LinkageEdge {
                     left: gi.min(gk),
                     right: gi.max(gk),
                 });
             }
         }
-    }
+        (edges, to)
+    };
+
+    // --- Pass 1: max total contractions ---
+    let no_bonus = |_offset: usize, _i: usize, _k: usize| -> usize { 0 };
+    let (mut all_edges, mut timed_out) = run_all_segments(&no_bonus, deadline);
 
     // Check injection-relevance of Pass 1 edges.
     let has_injection = all_edges
@@ -295,50 +298,22 @@ pub fn parse(input: &ParseInput, timeout: Option<Duration>) -> LinkageGraph {
 
     // --- Pass 2: injection-aware scoring (if needed) ---
     if !has_injection && !timed_out {
-        let mut pass2_edges: Vec<LinkageEdge> = Vec::new();
-        let mut pass2_has_injection = false;
-
-        for &(seg_start, seg_end) in &segments {
-            let seg = &types[seg_start..seg_end];
-            if seg.is_empty() {
-                continue;
+        let injection_bonus = |seg_start: usize, i: usize, k: usize| -> usize {
+            let gi = (seg_start + i) as u16;
+            let gk = (seg_start + k) as u16;
+            if is_injection_relevant(gi.min(gk), gi.max(gk), &types, &chunk_ids) {
+                types.len() // +n bonus
+            } else {
+                0
             }
-            let seg_len = seg.len();
-            let bonus_val = seg_len; // +n bonus for injection-relevant edges
+        };
+        let (pass2_edges, pass2_to) = run_all_segments(&injection_bonus, deadline);
+        timed_out |= pass2_to;
 
-            let bonus_fn = |i: usize, k: usize| -> usize {
-                let gi = (seg_start + i) as u16;
-                let gk = (seg_start + k) as u16;
-                if is_injection_relevant(gi.min(gk), gi.max(gk), &types, &chunk_ids) {
-                    bonus_val
-                } else {
-                    0
-                }
-            };
+        let pass2_has_injection = pass2_edges
+            .iter()
+            .any(|e| is_injection_relevant(e.left, e.right, &types, &chunk_ids));
 
-            let (_, bp, to) = nussinov_dp(seg, &bonus_fn, deadline);
-            timed_out |= to;
-
-            if seg_len > 0 {
-                let mut local_edges = Vec::new();
-                extract_edges(&bp, 0, seg_len - 1, &mut local_edges);
-
-                for (li, lk) in local_edges {
-                    let gi = (seg_start + li) as u16;
-                    let gk = (seg_start + lk) as u16;
-                    let edge = LinkageEdge {
-                        left: gi.min(gk),
-                        right: gi.max(gk),
-                    };
-                    if is_injection_relevant(edge.left, edge.right, &types, &chunk_ids) {
-                        pass2_has_injection = true;
-                    }
-                    pass2_edges.push(edge);
-                }
-            }
-        }
-
-        // Use Pass 2 result if it found injection-relevant edges.
         if pass2_has_injection {
             all_edges = pass2_edges;
         }
@@ -552,10 +527,8 @@ mod tests {
             (1, vec![st(TypeId::S, -1), st(TypeId::S, 0)], None),
         ]);
         let g = parse(&input, None);
-        #[allow(unused_variables)]
-        let _ = &g; // Pass 2 runs but finds nothing injection-relevant.
-                    // Both are non-injection edges. Pass 2 runs but finds nothing injection-relevant.
-                    // Should return same edges as Pass 1.
+        // Both are non-injection edges. Pass 2 runs but finds nothing.
+        // Should return same edges as Pass 1.
         assert_eq!(g.edge_count(), 2);
         assert!(g.edges.contains(&LinkageEdge { left: 0, right: 1 }));
         assert!(g.edges.contains(&LinkageEdge { left: 2, right: 3 }));

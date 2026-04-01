@@ -79,12 +79,12 @@ pub fn build_adjacency(graph: &LinkageGraph) -> Vec<SmallVec<[(u16, EdgeKind); 4
     }
 
     // Adjacent same-chunk pairs.
-    for i in 0..n.saturating_sub(1) {
-        if graph.meta[i].chunk_idx == graph.meta[i + 1].chunk_idx {
-            let i16 = i as u16;
-            let j16 = (i + 1) as u16;
-            adj[i].push((j16, EdgeKind::Adjacency));
-            adj[i + 1].push((i16, EdgeKind::Adjacency));
+    for (i, pair) in graph.meta.windows(2).enumerate() {
+        if pair[0].chunk_idx == pair[1].chunk_idx {
+            let left = i as u16;
+            let right = (i + 1) as u16;
+            adj[i].push((right, EdgeKind::Adjacency));
+            adj[i + 1].push((left, EdgeKind::Adjacency));
         }
     }
 

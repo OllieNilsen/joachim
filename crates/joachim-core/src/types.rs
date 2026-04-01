@@ -110,12 +110,6 @@ impl SimpleType {
             adjoint: self.adjoint.checked_add(1).expect("adjoint overflow"),
         }
     }
-
-    /// Extract the primitive base type, ignoring the adjoint.
-    #[must_use]
-    pub fn base(self) -> TypeId {
-        self.base
-    }
 }
 
 /// Test whether two simple types can contract.
@@ -197,13 +191,7 @@ impl TypeExpr {
         &self.0
     }
 
-    /// Whether this is the unit type (empty product).
-    #[must_use]
-    pub fn is_unit(&self) -> bool {
-        self.0.is_empty()
-    }
-
-    /// Whether the product is empty.
+    /// Whether the product is empty (the unit type **1**).
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
@@ -263,7 +251,7 @@ pub enum VoidingKind {
 }
 
 /// A chunk's type assignment from the supertagger.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TypeAssignment {
     /// Chunk index in the original sequence (monotonically non-decreasing).
@@ -274,16 +262,21 @@ pub struct TypeAssignment {
     pub voiding: Option<VoidingKind>,
 }
 
+impl fmt::Display for VoidingKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Hypothetical => f.write_str("Hypothetical"),
+            Self::Negation => f.write_str("Negation"),
+            Self::Meta => f.write_str("Meta"),
+        }
+    }
+}
+
 impl fmt::Display for TypeAssignment {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "[{}] {}", self.chunk_idx, self.type_expr)?;
-        if let Some(v) = &self.voiding {
-            let tag = match v {
-                VoidingKind::Hypothetical => "Hypothetical",
-                VoidingKind::Negation => "Negation",
-                VoidingKind::Meta => "Meta",
-            };
-            write!(f, " [voiding: {tag}]")?;
+        if let Some(v) = self.voiding {
+            write!(f, " [voiding: {v}]")?;
         }
         Ok(())
     }
