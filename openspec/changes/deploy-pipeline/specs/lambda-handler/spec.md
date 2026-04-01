@@ -22,12 +22,18 @@ The handler SHALL execute the complete detection pipeline:
 3. `check_scope(graph, assignments)` — scope checking
 4. Return verdict
 
-### Requirement: Supertagger reuse across invocations
-The `Supertagger` instance SHALL be initialized once (on first invocation) and reused across warm Lambda invocations via `once_cell::sync::Lazy` or equivalent.
+### Requirement: Supertagger pre-initialization in main()
+The `Supertagger` instance SHALL be constructed in `main()` before the Lambda runtime loop starts, and passed to the handler via closure capture. This ensures:
+- Fail-fast on cold start if AWS credentials are invalid.
+- Reuse across all warm invocations without async once-cell complexity.
+
+#### Scenario: Cold start
+- **WHEN** the Lambda cold-starts
+- **THEN** `Supertagger::new()` is called in `main()` before any request is processed. If it fails, the Lambda exits immediately.
 
 #### Scenario: Warm invocation
 - **WHEN** the Lambda is invoked a second time (warm)
-- **THEN** the Supertagger SHALL NOT reconstruct the Bedrock client
+- **THEN** the same `Supertagger` instance is reused (no reconstruction)
 
 ### Requirement: Response schema
 The response body SHALL be JSON with fields:
@@ -43,3 +49,6 @@ The response body SHALL be JSON with fields:
 
 ### Requirement: No panics
 The handler SHALL never panic. All errors are mapped to HTTP error responses.
+
+### Requirement: Unit test scope
+Unit tests for the Lambda handler SHALL test request parsing and response serialization only — NOT the full detection pipeline (which requires Bedrock). Full pipeline testing is covered by the deploy workflow's authenticated smoke test.

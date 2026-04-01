@@ -63,7 +63,17 @@ ALL resources (Lambda, API Gateway, Cognito User Pool, IAM roles) SHALL be tagge
 ### Requirement: API Gateway access logging
 Access logging SHALL be enabled to CloudWatch Logs for request tracing.
 
+### Requirement: Smoke test user
+The Pulumi stack SHALL create a Cognito test user idempotently and store its credentials in Secrets Manager (`joachim/smoke-test-user`). The deploy workflow reads these credentials for authenticated smoke tests.
+
+#### Scenario: Smoke test authentication
+- **WHEN** the deploy workflow runs the smoke test
+- **THEN** it reads credentials from Secrets Manager, calls `InitiateAuth`, and uses the JWT to call `POST /detect`
+
 ### Requirement: Deploy workflow
 A GitHub Actions workflow SHALL deploy the API stack on push to `main` when `infra/pulumi/api/**` or `crates/joachim-lambda/**` changes. It SHALL:
-1. Build the Lambda binary (cross-compile for `aarch64-unknown-linux-musl`)
-2. Run `pulumi up` to deploy the Lambda, API Gateway, and Cognito resources
+1. Cross-compile the Lambda binary for `aarch64-unknown-linux-musl` using `cargo-zigbuild`
+2. Package the binary as `bootstrap` in a zip
+3. Run `pulumi up` to deploy the Lambda, API Gateway, Cognito, and smoke test user
+4. Run authenticated smoke test (acquire token via `InitiateAuth`, call `POST /detect`, assert 200)
+5. Run unauthenticated smoke test (assert 401)

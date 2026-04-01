@@ -10,7 +10,10 @@ The launch template SHALL enforce IMDSv2-only, no SSH key, and use the runner se
 A dedicated S3 bucket SHALL store sccache artifacts with lifecycle policies: 14 days for PR caches, 90 days for main caches.
 
 ### Requirement: OIDC controller role
-An IAM role assumable via GitHub OIDC SHALL allow the CI workflow to spawn and terminate EC2 runner instances. The OIDC sub claim SHALL be restricted to `repo:OllieNilsen/joachim:ref:refs/heads/*`.
+An IAM role assumable via GitHub OIDC SHALL allow the CI workflow to spawn and terminate EC2 runner instances. The OIDC sub claim SHALL be `repo:OllieNilsen/joachim:*` (matches both branch pushes and PR events).
+
+### Requirement: Pulumi state backend
+The stack SHALL use `s3://joachim-pulumi-state` as the Pulumi backend. The bucket is created as a one-time bootstrap step with versioning enabled.
 
 ### Requirement: Runner instance role
 EC2 runner instances SHALL assume a role with scoped S3 access: read/write to `pr-*` prefixes, read-only to `main/` prefix.
