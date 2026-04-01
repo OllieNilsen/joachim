@@ -1,0 +1,5 @@
+name: joachim-ci-runner
+runtime: nodejs
+description: Ephemeral EC2 CI runner infrastructure for JOACHIM (sccache, OIDC, GC, spot interceptor)
+backend:
+  url: s3://joachim-pulumi-state

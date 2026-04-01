@@ -1,0 +1,12 @@
+{
+  "name": "joachim-ci-runner",
+  "main": "index.ts",
+  "devDependencies": {
+    "@types/node": "^20"
+  },
+  "dependencies": {
+    "@pulumi/pulumi": "^3",
+    "@pulumi/aws": "^6",
+    "@pulumi/awsx": "^2"
+  }
+}

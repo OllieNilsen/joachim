@@ -1,27 +1,27 @@
 ## 1. CI Runner Infra (Pulumi)
 
-- [ ] 1.0 Bootstrap: create S3 bucket `joachim-pulumi-state` with versioning enabled (one-time manual step, documented in README)
-- [ ] 1.1 Create `infra/pulumi/ci-runner/` with `Pulumi.yaml` (name: `joachim-ci-runner`, runtime: nodejs, backend: `s3://joachim-pulumi-state`)
-- [ ] 1.2 Create `package.json` with `@pulumi/pulumi`, `@pulumi/aws`, `@pulumi/awsx` dependencies
-- [ ] 1.3 Add Pulumi stack transformation for mandatory `Project: joachim` tag on all AWS resources
-- [ ] 1.4 Implement VPC: public subnets, no NAT, 2 AZs
-- [ ] 1.5 Implement security group: egress-only, no ingress
-- [ ] 1.6 Implement launch template: IMDSv2 enforced, no SSH key, runner SG
-- [ ] 1.7 Implement sccache S3 bucket (`joachim-ci-sccache-us-east-1`) with lifecycle policies (14d PR, 90d main)
-- [ ] 1.8 Implement runner instance IAM role + instance profile with scoped S3 access
-- [ ] 1.9 Implement OIDC controller role restricted to `repo:OllieNilsen/joachim:*` (matches branch pushes and PR events)
-- [ ] 1.10 Implement controller IAM policy: `ec2:RunInstances`, `ec2:TerminateInstances`, `ec2:DescribeInstances`, `iam:PassRole`, `ec2:CreateTags`
-- [ ] 1.11 Implement webhook ingest Lambda: signature validation, DynamoDB dedup, EventBridge forwarding
-- [ ] 1.12 Implement webhook API Gateway HTTP API + route + stage
-- [ ] 1.13 Implement DynamoDB deliveries table with TTL
-- [ ] 1.14 Implement GC Lambda: terminate tagged orphan runners on `workflow_job.completed`
-- [ ] 1.15 Implement GC EventBridge rule targeting the GC Lambda
-- [ ] 1.16 Implement spot interruption interceptor Lambda
-- [ ] 1.17 Implement spot interruption EventBridge rule
-- [ ] 1.18 Implement CloudWatch alarms: GC DLQ, GC errors, spot interceptor errors
-- [ ] 1.19 Implement CloudWatch reliability dashboard
-- [ ] 1.20 Export stack outputs: `controllerRoleArn`, `launchTemplateId`, `primarySubnetId`, `securityGroupId`, `sccacheBucketName`, `runnerInstanceProfileArn`, `CI_RUNNER_*` variables
-- [ ] 1.21 Create `scripts/sync-ci-runner-vars.sh` (adapted from druum)
+- [x] 1.0 Bootstrap: create S3 bucket `joachim-pulumi-state` with versioning enabled (one-time manual step, documented in README)
+- [x] 1.1 Create `infra/pulumi/ci-runner/` with `Pulumi.yaml` (name: `joachim-ci-runner`, runtime: nodejs, backend: `s3://joachim-pulumi-state`)
+- [x] 1.2 Create `package.json` with `@pulumi/pulumi`, `@pulumi/aws`, `@pulumi/awsx` dependencies
+- [x] 1.3 Add Pulumi stack transformation for mandatory `Project: joachim` tag on all AWS resources
+- [x] 1.4 Implement VPC: public subnets, no NAT, 2 AZs
+- [x] 1.5 Implement security group: egress-only, no ingress
+- [x] 1.6 Implement launch template: IMDSv2 enforced, no SSH key, runner SG
+- [x] 1.7 Implement sccache S3 bucket (`joachim-ci-sccache-us-east-1`) with lifecycle policies (14d PR, 90d main)
+- [x] 1.8 Implement runner instance IAM role + instance profile with scoped S3 access
+- [x] 1.9 Implement OIDC controller role restricted to `repo:OllieNilsen/joachim:*` (matches branch pushes and PR events)
+- [x] 1.10 Implement controller IAM policy: `ec2:RunInstances`, `ec2:TerminateInstances`, `ec2:DescribeInstances`, `iam:PassRole`, `ec2:CreateTags`
+- [x] 1.11 Implement webhook ingest Lambda: signature validation, DynamoDB dedup, EventBridge forwarding
+- [x] 1.12 Implement webhook API Gateway HTTP API + route + stage
+- [x] 1.13 Implement DynamoDB deliveries table with TTL
+- [x] 1.14 Implement GC Lambda: terminate tagged orphan runners on `workflow_job.completed`
+- [x] 1.15 Implement GC EventBridge rule targeting the GC Lambda
+- [x] 1.16 Implement spot interruption interceptor Lambda
+- [x] 1.17 Implement spot interruption EventBridge rule
+- [x] 1.18 Implement CloudWatch alarms: GC DLQ, GC errors, spot interceptor errors
+- [x] 1.19 Implement CloudWatch reliability dashboard
+- [x] 1.20 Export stack outputs: `controllerRoleArn`, `launchTemplateId`, `primarySubnetId`, `securityGroupId`, `sccacheBucketName`, `runnerInstanceProfileArn`, `CI_RUNNER_*` variables
+- [x] 1.21 Create `scripts/sync-ci-runner-vars.sh` (adapted from druum)
 
 ## 2. CI Workflows (GitHub Actions)
 
