@@ -52,17 +52,17 @@
 
 ## 4. Lambda Handler Crate
 
-- [ ] 4.1 Create `crates/joachim-lambda/Cargo.toml`: depend on `joachim-core`, `joachim-supertag`, `lambda_http`, `lambda_runtime`, `tokio`, `serde_json`
-- [ ] 4.2 Add `joachim-lambda` to workspace members
-- [ ] 4.3 Implement request types: `DetectRequest { text: String }`, `DetectResponse { verdict, violations, prompt_version, timed_out }`
-- [ ] 4.4 Implement `main()`: pre-initialize `Supertagger::new().await` then `run(service_fn(|event| handler(event, &tagger)))`
-- [ ] 4.5 Implement handler function: parse request → supertag → parse → scope check → return response
-- [ ] 4.6 Implement error mapping: `SupertaggerError::InputTooLong` → 400, other `SupertaggerError` → 502, bad request → 400
-- [ ] 4.7 Write unit test: `DetectRequest` deserializes from valid JSON
-- [ ] 4.8 Write unit test: `DetectResponse` serializes to expected JSON structure
-- [ ] 4.9 Write unit test: missing `text` field in request body produces 400 error mapping
-- [ ] 4.10 Write unit test: malformed JSON request body produces 400 error mapping
-- [ ] 4.11 Note: full pipeline test (supertag → parse → scope check) is covered by deploy smoke test, not unit tests (requires Bedrock)
+- [x] 4.1 Create `crates/joachim-lambda/Cargo.toml`: depend on `joachim-core`, `joachim-supertag`, `lambda_http`, `lambda_runtime`, `tokio`, `serde_json`
+- [x] 4.2 Add `joachim-lambda` to workspace members
+- [x] 4.3 Implement request types: `DetectRequest { text: String }`, `DetectResponse { verdict, violations, prompt_version, timed_out }`
+- [x] 4.4 Implement `main()`: pre-initialize `Supertagger::new().await` then `run(service_fn(|event| handler(event, &tagger)))`
+- [x] 4.5 Implement handler function: parse request → supertag → parse → scope check → return response
+- [x] 4.6 Implement error mapping: `SupertaggerError::InputTooLong` → 400, other `SupertaggerError` → 502, bad request → 400
+- [x] 4.7 Write unit test: `DetectRequest` deserializes from valid JSON
+- [x] 4.8 Write unit test: `DetectResponse` serializes to expected JSON structure
+- [x] 4.9 Write unit test: missing `text` field in request body produces 400 error mapping
+- [x] 4.10 Write unit test: malformed JSON request body produces 400 error mapping
+- [x] 4.11 Note: full pipeline test (supertag → parse → scope check) is covered by deploy smoke test, not unit tests (requires Bedrock)
 
 ## 5. Deploy API Workflow
 
