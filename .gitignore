@@ -1,0 +1,22 @@
+# Build
+/target
+**/target
+
+# Cargo
+Cargo.lock
+**/*.rs.bk
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment
+.env
+.env.*
+
+# Proptest regressions (committed selectively)
+**/proptest-regressions/
